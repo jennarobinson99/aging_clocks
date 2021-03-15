@@ -1,4 +1,4 @@
-data/CpG_lists/bed_files/*
-data/CpG_lists/csv_files/*
-data/G4_maps/*
-out/*
+# Ignore everything in this directory 
+*
+# Except this file, such that the directory is included in Git repo. 
+!.gitignore
