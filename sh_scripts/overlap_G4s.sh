@@ -4,6 +4,7 @@
 echo "Concatenating both strands of G4 file ..."
 cat data/G4_maps/G4s_human_minus.bed data/G4_maps/G4s_human_plus.bed > temp/G4s_human.bed
 echo "... concatenated G4 files."
+
 #echo "Intersecting G4s and CpGs..."
 
 #cd D:/proj_epigen/aging_clocks/

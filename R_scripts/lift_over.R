@@ -1,3 +1,5 @@
+#Usage: Rscript --vanilla lift_over.R input_file output_file chain_file
+
 library(rtracklayer)
 
 # FUNCTIONS
