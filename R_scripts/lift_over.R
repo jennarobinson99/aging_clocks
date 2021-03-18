@@ -41,4 +41,4 @@ hg38_coordinates <- data.frame(iranges=hg38_ranges)
 hg38_coordinates <- data.frame(cbind(coordinates$chr, hg38_coordinates$iranges.start, 
                           hg38_coordinates$iranges.end, coordinates$weight))
 names(hg38_coordinates) <- c("chr", "start", "end", "weight")
-write.table(hg38_coordinates, file="temp/horvath_cpgs_lifted.bed", sep="\t", col.names = F, row.names = F, quote = F)
+write.table(hg38_coordinates, file=output_file, sep="\t", col.names = F, row.names = F, quote = F)
