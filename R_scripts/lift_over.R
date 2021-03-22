@@ -28,9 +28,9 @@ if (length(args)!=3) {
   chain_file <- args[3]
 }
 
-input_file <- "temp/CpGs_locs.bed"
-output_file <- "CpGs_lifted.bed"
-chain_file <- "data/chain_files/hg18ToHg38.over.chain"
+#input_file <- "temp/CpGs_locs.bed"
+#output_file <- "CpGs_lifted.bed"
+#chain_file <- "data/chain_files/hg18ToHg38.over.chain"
 
 chain <- import.chain(chain_file)
 
