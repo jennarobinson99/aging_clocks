@@ -28,6 +28,10 @@ if (length(args)!=3) {
   chain_file <- args[3]
 }
 
+input_file <- "temp/CpGs_locs.bed"
+output_file <- "CpGs_lifted.bed"
+chain_file <- "data/chain_files/hg18ToHg38.over.chain"
+
 chain <- import.chain(chain_file)
 
 #load the bed file containing genome coordinates 
@@ -40,7 +44,7 @@ ranges <- makeGRangesFromDataFrame(coordinates)
 hg38_ranges <- liftOver(ranges, chain)
 # get the object in the right format and write to file
 hg38_coordinates <- data.frame(iranges=hg38_ranges)
-hg38_coordinates <- data.frame(cbind(coordinates$chr, hg38_coordinates$iranges.start, 
+hg38_coordinates <- data.frame(cbind.data.frame(coordinates$chr, hg38_coordinates$iranges.start, 
                           hg38_coordinates$iranges.end, coordinates$weight))
 names(hg38_coordinates) <- c("chr", "start", "end", "weight")
 write.table(hg38_coordinates, file=output_file, sep="\t", col.names = F, row.names = F, quote = F)
