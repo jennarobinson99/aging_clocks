@@ -17,8 +17,9 @@ n_CpGs=$(wc -l out/CpGs_in_G4s.bed | awk '{print $1}')
 echo "Number of CpGs found to lie within G4s: $n_CpGs"
 
 echo "Control case: shuffle G4 and CpGs coordinates and overlap again..."
-# loop through multiple random seeds to get good value for control 
-for i in 1 2 3 4 5
+# loop through multiple random seeds to get good value for control
+# get mean for CpGs and G4s
+for i in 1 2 3
 do
 echo "Loop at i = $i"
 bedtools shuffle -i temp/G4s_human.bed -g data/genome_files/chromInfo.txt -seed $i > temp/G4s_human_shuffled.bed
