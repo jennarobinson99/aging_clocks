@@ -1,9 +1,9 @@
 library(tidyverse)
 library(scales)
 # Read in the overlapped CpG and G4 data 
-FE_file <- "out/Horvath_FE.csv"
-CpG_bed_file <- "out/CpGs_in_G4s.bed"
-G4_bed_file <- "out/G4s_in_CpGs.bed"
+FE_file <- "out/Levine_FE.csv"
+CpG_bed_file <- "out/CpGs_in_G4s_ws_50.bed"
+G4_bed_file <- "out/G4s_in_CpGs_ws_50.bed"
 
 # 1. plot fold enrichment vs. window size 
 # load data
