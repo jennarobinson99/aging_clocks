@@ -1,6 +1,6 @@
-CpG_file="data/CpG_lists/Horvath_CpGs.csv"
+CpG_file="data/CpG_lists/Levine_clock_CpGs.csv"
 G4_file_minus="data/G4_maps/G4s_human_minus.bed"
 G4_file_plus="data/G4_maps/G4s_human_plus.bed"
 chain_file="data/chain_files/hg18ToHg38.over.chain"
 genome_file="data/genome_files/chromInfo.txt"
-output_file="out/Horvath_FE.csv"
+output_file="out/Levine_FE.csv"
