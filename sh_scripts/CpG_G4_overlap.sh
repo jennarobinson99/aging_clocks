@@ -1,6 +1,6 @@
 #!/bin/sh
 #Need to execute this script from project root directory aging_clocks/
-# Usage: sh sh_scripts/CpG_G4_overlap.sh CpG_file G4_file_plus G4_file_minus chain_file genome_file output_file window_size
+# Usage: sh sh_scripts/CpG_G4_overlap.sh CpG_file G4_file_plus G4_file_minus chain_file genome_file output_file window_size name
 
 # first transform standardised CpG .csv file into .bed file
 CpG_file=$1 # file containing the CpG coordinates
@@ -18,6 +18,7 @@ echo -e "Chain file: \t $chain_file"
 echo -e "Genome file: \t $genome_file"
 echo -e "Output file: \t $output_file"
 echo -e "Window size: \t $window_size"
+echo -e "Name: \t $name"
 echo "Transforming CpG format from .csv to .bed ..."
 Rscript --vanilla R_scripts/csv_to_bed.R $CpG_file temp/CpGs_locs.bed
 echo "... finished transforming."

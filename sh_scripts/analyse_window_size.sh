@@ -14,13 +14,13 @@ source $config_file
 #echo "Chain file: $chain_file"
 #echo "Genome file: $genome_file"
 #echo "Output file: $output_file"
-echo $name
-echo $window_size_CpG_dist_plot
+#echo $name
+#echo $window_size_CpG_dist_plot
 
 
 for window_size in "$@"; do
 	echo "Analysing overlap with window size = $window_size"
-	sh sh_scripts/CpG_G4_overlap.sh $CpG_file $G4_file_plus $G4_file_minus $chain_file $genome_file $output_file $window_size
+	sh sh_scripts/CpG_G4_overlap.sh $CpG_file $G4_file_plus $G4_file_minus $chain_file $genome_file $output_file $window_size $name
 done
 
 echo "Producing figures..."
