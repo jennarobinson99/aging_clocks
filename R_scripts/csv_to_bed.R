@@ -3,6 +3,7 @@
 
 # IMPORTS
 library(dplyr)
+library(stringr)
 
 # FUNCTIONS
 # function to convert numeric chromosome number to .bed file chromosome string (e.g.:"chr1")
@@ -11,8 +12,11 @@ chr_string <- function(number) {
     char <- as.character(number)
     chromosome = paste("chr", char, sep = "")
   }
-  else 
-    chromosome = NaN
+  else if (str_detect(number, "chr")) 
+    chromosome = number
+  else{
+    chromosome=NaN
+  }
   return(chromosome)
 }
 
