@@ -14,10 +14,23 @@ source $config_file
 #echo "Chain file: $chain_file"
 #echo "Genome file: $genome_file"
 #echo "Output file: $output_file"
+echo $name
+echo $window_size_CpG_dist_plot
+
 
 for window_size in "$@"; do
 	echo "Analysing overlap with window size = $window_size"
 	sh sh_scripts/CpG_G4_overlap.sh $CpG_file $G4_file_plus $G4_file_minus $chain_file $genome_file $output_file $window_size
 done
+
+echo "Producing figures..."
+CpG_file="out/${name}_CpGs_in_G4s_ws_${window_size_CpG_dist_plot}.bed"
+G4_file="out/${name}_G4s_in_CpGs_ws_${window_size_CpG_dist_plot}.bed"
+figure_G4="out/${name}_FE_G4s.pdf"
+figure_CpG="out/${name}_FE_CpGs.pdf"
+figure_dist="out/${name}_CpG_distribution.pdf"
+Rscript --vanilla R_scripts/analyse_overlap_results.R $output_file $CpG_file $G4_file $figure_G4 $figure_CpG $figure_dist
+echo "... saved figures."
+
 
 

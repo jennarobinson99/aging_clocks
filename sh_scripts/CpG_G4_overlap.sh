@@ -10,6 +10,7 @@ chain_file=$4 # chain file for lifting over between genome builds
 genome_file=$5 # bed file specifying shuffleling ranges for overlap
 output_file=$6 # desired output file name for fold enrichment results
 window_size=$7 # window size around CpGs 
+name=$8 #name extension of output files
 echo -e "Processing files..."
 echo -e "CpG file: \t $CpG_file"
 echo -e "G4 files: \t $G4_file_plus (plus), $G4_file_minus (minus)"
@@ -40,13 +41,13 @@ echo "... concatenated G4 files."
 
 # Intersecting files
 echo "Finding G4s with overlap to CpG windows..."
-name_G4_out_file="out/G4s_in_CpGs_ws_${window_size}.bed"
+name_G4_out_file="out/${name}_G4s_in_CpGs_ws_${window_size}.bed"
 bedtools intersect -wa -a temp/G4s_human.bed -b temp/CpGs_ext.bed > $name_G4_out_file
 n_G4s=$(wc -l $name_G4_out_file | awk '{print $1}')
 echo "Number of G4s found to lie within CpGs: $n_G4s"
 
 echo "Finding CpGs with overlap to G4s..."
-name_CpG_out_file="out/CpGs_in_G4s_ws_${window_size}.bed"
+name_CpG_out_file="out/${name}_CpGs_in_G4s_ws_${window_size}.bed"
 bedtools intersect -wa -a temp/CpGs_ext.bed -b temp/G4s_human.bed > $name_CpG_out_file
 n_CpGs=$(wc -l $name_CpG_out_file | awk '{print $1}')
 echo "Number of CpGs found to lie within G4s: $n_CpGs"
