@@ -87,5 +87,3 @@ echo "CpGs are enriched at G4 sites to a fold enrichment value of: $FE_CpGs"
 
 #write input_file, FE and window size to file 
 echo -e "$CpG_file; $window_size; $FE_G4s; $FE_CpGs" >> $output_file
-
-
