@@ -64,5 +64,8 @@ command <- paste("bedtools intersect -wa -a", CpG_bed_file, "-b", CGI_map_file, 
 cat(command, "\n")
 try(system(command))
 
-CpGs_in_CGI <- read.csv(intersected_file_name, header=F, sep="\t")
-View(CpGs_in_CGI)
+CpGs_in_CGI <- read.csv(intersected_file_name, header=F, sep="\t", col.names=c("chr", "start", "end", "correlation"))
+CpGs_unmethylated <- CpGs_oI %>% filter(weight %in% CpGs_in_CGI[,"correlation"])%>% mutate(CGI = "Yes")
+CpGs_methylated <- CpGs_oI %>% filter(!(weight %in% CpGs_in_CGI[,"correlation"])) %>% mutate(CGI = "No")
+CpGs_oI <- rbind(CpGs_unmethylated, CpGs_methylated) 
+write.table(CpGs_oI, file="out/unmethlyated.bed", sep="\t",quote=F)

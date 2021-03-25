@@ -1,7 +1,7 @@
 CpG_file="data/CpG_lists/Horvath_clock_CpGs.csv"
 G4_file_minus="data/G4_maps/G4s_human_minus.bed"
 G4_file_plus="data/G4_maps/G4s_human_plus.bed"
-chain_file="-"
+chain_file="data/chain_files/hg18ToHg19.over.chain"
 genome_file="data/genome_files/hg19_chromInfo.txt"
 output_file="out/Horvath_FE.csv"
 name="Horvath"
