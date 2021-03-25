@@ -12,7 +12,7 @@ chr_string <- function(number) {
     char <- as.character(number)
     chromosome = paste("chr", char, sep = "")
   }
-  else if (str_detect(number, "chr")) 
+  else if (str_detect(number, "chr")[1]) 
     chromosome = number
   else{
     chromosome=NaN
