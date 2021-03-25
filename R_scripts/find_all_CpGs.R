@@ -43,3 +43,18 @@ write.table(CpG_coordinates, file="out/global_CpGs.bed", sep="\t", col.names = F
 write.table(CpG_occurence, file="out/global_CpGs_occurence.csv", sep=";", col.names = T, row.names = F, quote = F)
 # write extended coordinates table (where window function was applied)
 write.table(CpG_coordinates_ext, file="out/global_CpGs_ext.bed", sep="\t", col.names = F, row.names = F, quote = F)
+
+# find corresponding sequences
+# get sequence from genome 
+coordinates <- CpG_coordinates_ext
+chromosomes <-coordinates[,"chr"]
+starts <- coordinates[,"start"]
+ends <- coordinates[,"ends"]
+sequences <- as.list(unname(Biostrings::getSeq(BSgenome.Hsapiens.UCSC.hg38, chromosomes, starts, ends, as.character=T)))
+# create unique identifiers for each sequence
+ids <- c(1:length(chromosomes))
+id_string <- paste("Sequence_", as.character(ids), sep="")
+identifiers <- paste(id_string,chromosomes,sep="|")
+
+# construct new fasta file with sequences
+write.fasta(sequences, identifiers, "sequences/horvath_sequences.fasta", open="w", as.string=T)
