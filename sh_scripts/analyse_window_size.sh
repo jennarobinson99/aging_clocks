@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # script takes in range of values for window size and input file
-# to execute CpG_G4_overlap.sh once for each case 
+# to execute CpG_G4_overlap.sh once for each case
 # USAGE: sh sh_scripts/analyse_window_size.sh (window sizes...]
 #         e.g. sh sh_script/analyse_window_size.sh 10 100 1000 10000
 
@@ -20,7 +20,7 @@ source $config_file
 
 for window_size in "$@"; do
 	echo "Analysing overlap with window size = $window_size"
-	sh sh_scripts/CpG_G4_overlap.sh $CpG_file $G4_file_plus $G4_file_minus $chain_file $genome_file $output_file $window_size $name
+	sh sh_scripts/CpG_G4_overlap.sh $CpG_file $G4_file_plus $G4_file_minus $chain_file $genome_file $output_file $window_size $name $CpG_vs_CGI
 done
 
 echo "Producing figures..."
@@ -32,6 +32,3 @@ figure_dist="out/${name}_CpG_distribution.pdf"
 figure_CGI="out/${name}_CGI_context.pdf"
 Rscript --vanilla R_scripts/analyse_overlap_results.R $output_file $CpG_file $G4_file $CGI_map_file $figure_G4 $figure_CpG $figure_dist $figure_CGI
 echo "... saved figures."
-
-
-

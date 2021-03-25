@@ -8,3 +8,4 @@ name="Horvath"
 CGI_map_file="data/CGI_maps/hg19_CGI_map.bed"
 window_size_CpG_dist_plot="50"
 organism="Human"
+CpG_vs_CGI=1 #enrichment test: only set to 1 if wanna test G4 enrichment at CpGs vs CGIs, otherwise leave blank

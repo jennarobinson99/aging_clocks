@@ -9,8 +9,9 @@ G4_file_minus=$3 # file containing minus strand of G4 coordinates
 chain_file=$4 # chain file for lifting over between genome builds
 genome_file=$5 # bed file specifying shuffleling ranges for overlap
 output_file=$6 # desired output file name for fold enrichment results
-window_size=$7 # window size around CpGs 
+window_size=$7 # window size around CpGs
 name=$8 #name extension of output files
+CpG_vs_CGI=$9 #test enrichment vs global or vs CGI sites?
 echo -e "Processing files..."
 echo -e "CpG file: \t $CpG_file"
 echo -e "G4 files: \t $G4_file_plus (plus), $G4_file_minus (minus)"
@@ -53,37 +54,67 @@ bedtools intersect -wa -a temp/CpGs_ext.bed -b temp/G4s.bed > $name_CpG_out_file
 n_CpGs=$(wc -l $name_CpG_out_file | awk '{print $1}')
 echo "Number of CpGs found to lie within G4s: $n_CpGs"
 
-# Assess Fold enrichment 
+# Assess Fold enrichment
 echo "Control case: shuffle G4 and CpGs coordinates and overlap again..."
 # loop through multiple random seeds to get good value for control
 # get mean for CpGs and G4s
-mean_CpGs=0
-mean_G4s=0
-for i in 1 2 3
-do
-echo "Loop at i = $i"
-#Shuffle the data
-bedtools shuffle -i temp/G4s.bed -g $genome_file -seed $i > temp/G4s_shuffled.bed
-bedtools shuffle -i temp/CpGs_ext.bed -g $genome_file -seed $i > temp/CpGs_ext_shuffled.bed
+if [ "$CpG_vs_CGI" == "1" ]
+then
+    #when measuring enrichments of G4s at CpGs vs CGIs
+    echo "Measuring enrichment of G4s at CpGs vs CGIs..."
+    CGI_average=0
+    CGI_map_file="data/CGI_maps/hg19_CGI_map.bed"
+    for i in 1 2 3
+    do
+        echo "Loop at i = $1"
 
-#calculate number of G4s that lie within shuffled CpGs
-bedtools intersect -wa -a temp/G4s.bed -b temp/CpGs_ext_shuffled.bed > temp/G4s_in_shuffled_CpGs_temp.bed
-n_G4s_temp=$(wc -l temp/G4s_in_shuffled_CpGs_temp.bed | awk '{print $1}')
-# calculate running average with bc program
-mean_G4s=$(echo "scale=6;$mean_G4s+1/3*$n_G4s_temp" | bc)
+        #Shuffle DATA
+        bedtools shuffle -incl $CGI_map_file -seed $i -i temp/CpGs_ext.bed -g $genome_files > temp/pseudo_CGIs.bed
 
-#calculate number of CpGs that lie within G4s
-bedtools intersect -wa -a temp/CpGs_ext.bed -b temp/G4s_shuffled.bed > temp/CpGs_in_shuffled_G4s_temp.bed
-n_CpGs_temp=$(wc -l temp/CpGs_in_shuffled_G4s_temp.bed | awk '{print $1}')
-# calcuate running average with bc program
-mean_CpGs=$(echo "scale=6;$mean_CpGs+1/3*$n_CpGs_temp" | bc)
-done
+        bedtools intersect -wa -a temp/pseudo_CGIs.bed -b temp/G4s.bed > temp/pseudo_CGI_G4_overlap.bed
+        n_pseudo_CGIs=$(wc -l temp/pseudo_CGI_G4_overlap.bed | awk '{print $1}')
+        # calcuate running average with bc program
+        mean_CpGs=$(echo "scale=6;$CGI_average+1/3*$n_pseudo_CGIs" | bc)
+    done
 
-#Calculate fold enrichment 
-FE_G4s=$(echo "scale=6;$n_G4s/$mean_G4s" | bc)
-FE_CpGs=$(echo "scale=6;$n_CpGs/$mean_CpGs" | bc)
-echo "G4s are enriched at CpG sites to a fold enrichment value of: $FE_G4s"
-echo "CpGs are enriched at G4 sites to a fold enrichment value of: $FE_CpGs"
+    #Calculate fold enrichment
+    FE_CpGs=$(echo "scale=6;$n_CpGs/$CGI_average" | bc)
+    echo "Fold enrichment of CpGs vs. pseudo CGIs at G4s: $FE_CpGs"
 
-#write input_file, FE and window size to file 
-echo -e "$CpG_file; $window_size; $FE_G4s; $FE_CpGs" >> $output_file
+    #write input_file, FE and window size to file
+    echo -e "$CpG_file; $window_size; $FE_CpGs" >> $output_file
+else
+    # when measuring enrichment globally
+    echo "Measuring global enrichment of G4s and CpGs..."
+    mean_CpGs=0
+    mean_G4s=0
+    for i in 1 2 3
+    do
+        echo "Loop at i = $i"
+
+        #Shuffle the data
+        bedtools shuffle -i temp/G4s.bed -g $genome_file -seed $i > temp/G4s_shuffled.bed
+        bedtools shuffle -i temp/CpGs_ext.bed -g $genome_file -seed $i > temp/CpGs_ext_shuffled.bed
+
+        #calculate number of G4s that lie within shuffled CpGs
+        bedtools intersect -wa -a temp/G4s.bed -b temp/CpGs_ext_shuffled.bed > temp/G4s_in_shuffled_CpGs_temp.bed
+        n_G4s_temp=$(wc -l temp/G4s_in_shuffled_CpGs_temp.bed | awk '{print $1}')
+        # calculate running average with bc program
+        mean_G4s=$(echo "scale=6;$mean_G4s+1/3*$n_G4s_temp" | bc)
+
+        #calculate number of CpGs that lie within G4s
+        bedtools intersect -wa -a temp/CpGs_ext.bed -b temp/G4s_shuffled.bed > temp/CpGs_in_shuffled_G4s_temp.bed
+        n_CpGs_temp=$(wc -l temp/CpGs_in_shuffled_G4s_temp.bed | awk '{print $1}')
+        # calcuate running average with bc program
+        mean_CpGs=$(echo "scale=6;$mean_CpGs+1/3*$n_CpGs_temp" | bc)
+    done
+
+    #Calculate fold enrichment
+    FE_G4s=$(echo "scale=6;$n_G4s/$mean_G4s" | bc)
+    FE_CpGs=$(echo "scale=6;$n_CpGs/$mean_CpGs" | bc)
+    echo "G4s are enriched at CpG sites to a fold enrichment value of: $FE_G4s"
+    echo "CpGs are enriched at G4 sites to a fold enrichment value of: $FE_CpGs"
+
+    #write input_file, FE and window size to file
+    echo -e "$CpG_file; $window_size; $FE_G4s; $FE_CpGs" >> $output_file
+fi
