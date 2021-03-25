@@ -73,5 +73,5 @@ ggsave(figure_name_chr_dist)
 ggplot(CpGs_oI) + 
   geom_bar(aes(x=chr)) + 
   facet_grid(CGI~.)
-ggsavve(figure_name_CGI_context)
+ggsave(figure_name_CGI_context)
 
