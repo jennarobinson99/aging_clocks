@@ -11,6 +11,7 @@ if (length(args)!=6) {
   FE_file <- args[1]
   CpG_bed_file <- args[2]
   G4_bed_file <- args[3]
+  CGI_map_file <- args[4]
   figure_name_G4 <- args[4]
   figure_name_CpGs <- args[5]
   figure_name_chr_dist <- args[6]
@@ -47,25 +48,23 @@ ggsave(figure_name_CpGs)
 # 2. Analyse which G4s and CpGs overlap --> find commonalities? 
 CpGs_oI <- read.csv(CpG_bed_file, header=FALSE, sep="\t", col.names = c("chr", "start", "end", "weight"))
 G4s_oI <- read.csv(G4_bed_file, header=FALSE, sep="\t", col.names=c("chr", "start", "end", "score"))
-# 2.1 CpGs
 CpGs_pos <- CpGs_oI %>% filter(weight > 0) %>% mutate(correlation = "Positive")
 CpGs_neg <- CpGs_oI %>% filter(weight < 0) %>% mutate(correlation = "Negative")
 CpGs_oI <- rbind(CpGs_pos, CpGs_neg)
-# plot CpG distribution 
-ggplot(CpGs_oI) + 
-  geom_bar(aes(x=chr)) + 
-  facet_grid(correlation~.)
-ggsave(figure_name_chr_dist)
 
 # 3. Check which CpGs lie within CGIs
-CGI_map_file <- "data/CGI_maps/hg19_CGI_map.bed"
-intersected_file_name <- "out/CpGs_in_CGI.bed"
+intersected_file_name <- "temp/CpG_info.bed"
 command <- paste("bedtools intersect -wa -a", CpG_bed_file, "-b", CGI_map_file, ">", intersected_file_name, sep=" ")
 cat(command, "\n")
 try(system(command))
-
-CpGs_in_CGI <- read.csv(intersected_file_name, header=F, sep="\t", col.names=c("chr", "start", "end", "correlation"))
+CpGs_in_CGI <- read.csv(intersected_file_name, header=F, sep="\t", col.names=c("chr", "start", "end", "weight", "correlation"))
 CpGs_unmethylated <- CpGs_oI %>% filter(weight %in% CpGs_in_CGI[,"correlation"])%>% mutate(CGI = "Yes")
 CpGs_methylated <- CpGs_oI %>% filter(!(weight %in% CpGs_in_CGI[,"correlation"])) %>% mutate(CGI = "No")
 CpGs_oI <- rbind(CpGs_unmethylated, CpGs_methylated) 
 write.table(CpGs_oI, file="out/unmethlyated.bed", sep="\t",quote=F)
+
+# plot CpG distribution 
+ggplot(CpGs_oI) + 
+  geom_bar(aes(x=chr)) + 
+  facet_grid(correlation~CGI)
+ggsave(figure_name_chr_dist)
