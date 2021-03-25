@@ -1,4 +1,3 @@
-setwd("D:/proj_epigen/aging_clocks")
 library(tidyverse)
 library(Biostrings)
 library(BSgenome.Hsapiens.UCSC.hg38)
@@ -34,13 +33,13 @@ for (chr_name in chromosomes) {
 CpG_occurence[[25]] <- total
 
 #apply window to CpG locations and save in extended CpG coordinates tibble
-extension_bases <- 50
+extension_bases <- 25
 CpG_coordinates_ext <- CpG_coordinates %>% mutate(end=start+extension_bases, start=start-extension_bases)
 
 # write data to file
 # write coordinates to .bed file
-write.table(CpG_coordinates, file="CpG_lists/bed_files/global_CpGs.bed", sep="\t", col.names = F, row.names = F, quote = F)
+write.table(CpG_coordinates, file="out/global_CpGs.bed", sep="\t", col.names = F, row.names = F, quote = F)
 # write CpG occurances into .csv file
-write.table(CpG_occurence, file="CpG_lists/csv_files/global_CpGs_occurence.csv", sep=",", col.names = T, row.names = F, quote = F)
+write.table(CpG_occurence, file="out/global_CpGs_occurence.csv", sep=";", col.names = T, row.names = F, quote = F)
 # write extended coordinates table (where window function was applied)
-write.table(CpG_coordinates_ext, file="CpG_lists/bed_files/global_CpGs_ext.bed", sep="\t", col.names = F, row.names = F, quote = F)
+write.table(CpG_coordinates_ext, file="out/global_CpGs_ext.bed", sep="\t", col.names = F, row.names = F, quote = F)
