@@ -66,15 +66,17 @@ then
     CGI_map_file="data/CGI_maps/hg19_CGI_map.bed"
     for i in 1 2 3
     do
-        echo "Loop at i = $1"
+        echo "Loop at i = $i"
 
         #Shuffle DATA
-        bedtools shuffle -incl $CGI_map_file -seed $i -i temp/CpGs_ext.bed -g $genome_files > temp/pseudo_CGIs.bed
+        bedtools shuffle -incl $CGI_map_file -seed $i -i temp/CpGs_ext.bed -g $genome_file > temp/pseudo_CGIs.bed
 
         bedtools intersect -wa -a temp/pseudo_CGIs.bed -b temp/G4s.bed > temp/pseudo_CGI_G4_overlap.bed
         n_pseudo_CGIs=$(wc -l temp/pseudo_CGI_G4_overlap.bed | awk '{print $1}')
-        # calcuate running average with bc program
-        mean_CpGs=$(echo "scale=6;$CGI_average+1/3*$n_pseudo_CGIs" | bc)
+        echo "Number of pseudo CGI found: $n_pseudo_CGIs"
+	# calcuate running average with bc program
+        CGI_average=$(echo "scale=6;$CGI_average+1/3*$n_pseudo_CGIs" | bc)
+	echo "Mean: $mean_CpGs"
     done
 
     #Calculate fold enrichment
