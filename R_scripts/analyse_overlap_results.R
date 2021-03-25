@@ -56,3 +56,13 @@ ggplot(CpGs_oI) +
   geom_bar(aes(x=chr)) + 
   facet_grid(correlation~.)
 ggsave(figure_name_chr_dist)
+
+# 3. Check which CpGs lie within CGIs
+CGI_map_file <- "data/CGI_maps/hg19_CGI_map.bed"
+intersected_file_name <- "out/CpGs_in_CGI.bed"
+command <- paste("bedtools intersect -wa -a", CpG_bed_file, "-b", CGI_map_file, ">", intersected_file_name, sep=" ")
+cat(command, "\n")
+try(system(command))
+
+CpGs_in_CGI <- read.csv(intersected_file_name, header=F, sep="\t")
+View(CpGs_in_CGI)
