@@ -14,26 +14,25 @@ args <- commandArgs(trailingOnly = TRUE)
 # test for correct arguments
 # error message
 message <- "Use script in one of the two versions: \n 
-  Fixed window: Rscript --vanilla filter_CpGs.R input_file output_file window_size \n
-  Variable window: Rscript --vanilla filter_CpGs.R input_file output_file start_size end_size interval \n
+  Fixed window: Rscript --vanilla filter_CpGs.R input_file output_file CGI_map_file window_size \n
   Arguments must be integers."
 
-if (length(args) == 3 ){
- window_size<- as.integer(args[3])
+if (length(args) == 4 ){
+ window_size<- as.integer(args[4])
  input_file <- args[1]
  output_file <- args[2]
+ CGI_map_file <- args[3]
  range <- FALSE
   
-} else if (length(args) == 5){
-  start_size <- as.integer(args[3])
-  end_size <- as.integer(args[4])
-  interval <- as.integer(args[5])
-  input_file <- args[1]
-  output_file <- args[2]
-  range <- TRUE
 } else {
   stop(message, call.=TRUE)
 }
+# for interactive mode:
+# input_file <- "temp/CpGs_lifted.bed"
+# output_file <- "temp/CpGs_ext.bed"
+# range <- F
+# window_size <- 100
+# CGI_map_file <- "-"
 
 # IMPORTS
 library(dplyr)
@@ -70,4 +69,20 @@ CpGs_neg <- CpG_locs %>% filter(weight < 0)
 # write .bed file
 write.table(CpGs_neg, file=neg_output_file, sep="\t", col.names = F, row.names = F, quote = F)
 
-
+# get CpGs split according to CGI context 
+if (CGI_map_file=="-"){
+  print("No CGI map file supplied")
+} else {
+  intersected_file_name <- "temp/CpG_CGI_intersect.bed"
+  command <- paste("bedtools intersect -wa -a", output_file, "-b", CGI_map_file, ">", intersected_file_name, sep=" ")
+  cat(command, "\n")
+  try(system(command))
+  CpGs_in_CGI <- read.csv(intersected_file_name, header=F, sep="\t", col.names=c("chr", "start", "end", "weight", "correlation"))
+  CpGs_unmethylated <- CpGs_locs %>% filter(weight %in% CpGs_in_CGI[,"weight"]) %>% mutate(CGI = "within CGI")
+  CpGs_methylated <- CpGs_locs %>% filter(!(weight %in% CpGs_in_CGI[,"weight"])) %>% mutate(CGI = "outside CGI")
+  CpGs_CGI <- rbind(CpGs_unmethylated, CpGs_methylated) 
+  write.table(CpGs_CGI, file="temp/all_CpGs_CGI_context.bed", sep="\t",quote=F)
+  write_table(CpGs_unmethylated, file="temp/CpGs_within.bed", sep="\t", quote=F)
+  write_table(CpGs_methylated, file="temp/CpGs_outside.bed", sep="\t",quote=F)
+}
+  
