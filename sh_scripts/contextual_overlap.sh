@@ -83,8 +83,7 @@ do
     # calculate running average with bc program
     mean_CpGs_within=$(echo "scale=6;$mean_CpGs_within+1/3*$n_CpGs_within_temp" | bc)
 
-    #calculate number of non-CGI-CpGs that lie within G4s
-	echo "debugging1"    
+    #calculate number of non-CGI-CpGs that lie within G4s   
 bedtools intersect -wa -a temp/CpGs_outside.bed -b temp/G4s_shuffled.bed > temp/overlap.bed
     sort -k1,1 -k2,2n temp/overlap.bed > temp/overlap_sorted.bed
     bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > temp/CpGs_in_shuffled_G4s_temp.bed

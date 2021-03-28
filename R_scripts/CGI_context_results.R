@@ -36,7 +36,7 @@ ggplot(overlap_data) +
                 labels = trans_format("log10", math_format(10^.x))) +
   ylab("Fold enrichment of CGI-associated CpGs at G4s") + 
   xlab("Basepair window size around CpGs")
-ggsave(figure_name_G4)
+ggsave(figure_name_within)
 # plot CpGs
 ggplot(overlap_data) + 
   geom_point(aes(x=window_size,y=FE_outside)) +
@@ -44,7 +44,7 @@ ggplot(overlap_data) +
                 labels = trans_format("log10", math_format(10^.x))) +
   ylab("Fold enrichment of non-CGI CpGs at G4s") + 
   xlab("Basepair window size around CpGs")
-ggsave(figure_name_CpGs)
+ggsave(figure_name_outside)
 
 # Read in CpG data
 CpGs_within <- read.csv(CpG_within_file, header=FALSE, sep="\t", col.names = c("chr", "start", "end", "weight"))
@@ -70,5 +70,5 @@ ggplot(CpGs_oI) +
   facet_grid(CGI_context~.)
 ggsave(figure_name_CGI_context)
 print("Results:")
-sprintf("%.2f percent of CpGs lie within CGIs.", 100* nrow(CpGs_unmethylated)/nrow(CpGs_oI))
-sprintf("%.2f percent of CpGs lie outside of CGIs.", 100 * nrow(CpGs_methylated)/nrow(CpGs_oI)) 
+sprintf("%.2f percent of CpGs lie within CGIs.", 100* nrow(CpGs_within)/nrow(CpGs_oI))
+sprintf("%.2f percent of CpGs lie outside of CGIs.", 100 * nrow(CpGs_outside)/nrow(CpGs_oI)) 

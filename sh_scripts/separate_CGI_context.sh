@@ -25,8 +25,8 @@ done
 echo "Producing figures..."
 CpG_within_file="out/${name}_CpGs_within_CGI_ws_${window_size_CpG_dist_plot}.bed"
 CpG_outside_file="out/${name}_CpGs_outside_CGI_ws_${window_size_CpG_dist_plot}.bed"
-figure_within="out/${name}_FE_G4s.pdf"
-figure_outside="out/${name}_FE_CpGs.pdf"
+figure_within="out/${name}_FE_CpGs_within.pdf"
+figure_outside="out/${name}_FE_CpGs_outside.pdf"
 figure_dist="out/${name}_CpG_distribution.pdf"
 figure_CGI="out/${name}_CGI_context.pdf"
 Rscript --vanilla R_scripts/CGI_context_results.R $output_file $CpG_within_file $CpG_outside_file $CGI_map_file $figure_within $figure_outside $figure_dist $figure_CGI
