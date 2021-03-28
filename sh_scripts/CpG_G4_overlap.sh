@@ -31,7 +31,7 @@ echo "... lifted CpGs."
 
 # Next filter coordinates (positive, negative correlation) and extend bases by window length n
 echo "Filtering and extending bases..."
-Rscript --vanilla R_scripts/filter_CpGs.R temp/CpGs_lifted.bed temp/CpGs_ext.bed data/CGI_maps/hg19_CGI_map $window_size
+Rscript --vanilla R_scripts/filter_CpGs.R temp/CpGs_lifted.bed temp/CpGs_ext.bed data/CGI_maps/hg19_CGI_map.bed $window_size
 echo "... filtered bases."
 
 # OVERLAPPING G4 AND CpG DATA

@@ -78,11 +78,11 @@ if (CGI_map_file=="-"){
   cat(command, "\n")
   try(system(command))
   CpGs_in_CGI <- read.csv(intersected_file_name, header=F, sep="\t", col.names=c("chr", "start", "end", "weight", "correlation"))
-  CpGs_unmethylated <- CpGs_locs %>% filter(weight %in% CpGs_in_CGI[,"weight"]) %>% mutate(CGI = "within CGI")
-  CpGs_methylated <- CpGs_locs %>% filter(!(weight %in% CpGs_in_CGI[,"weight"])) %>% mutate(CGI = "outside CGI")
+  CpGs_unmethylated <- CpG_locs %>% filter(weight %in% CpGs_in_CGI[,"weight"]) %>% mutate(CGI = "within CGI")
+  CpGs_methylated <- CpG_locs %>% filter(!(weight %in% CpGs_in_CGI[,"weight"])) %>% mutate(CGI = "outside CGI")
   CpGs_CGI <- rbind(CpGs_unmethylated, CpGs_methylated) 
-  write.table(CpGs_CGI, file="temp/all_CpGs_CGI_context.bed", sep="\t",quote=F)
-  write_table(CpGs_unmethylated, file="temp/CpGs_within.bed", sep="\t", quote=F)
-  write_table(CpGs_methylated, file="temp/CpGs_outside.bed", sep="\t",quote=F)
+  write.table(CpGs_CGI, file="temp/all_CpGs_CGI_context.bed", sep="\t",col.names=F,row.names=F,quote=F)
+  write.table(CpGs_unmethylated, file="temp/CpGs_within.bed", sep="\t",col.names=F,row.names=F, quote=F)
+  write.table(CpGs_methylated, file="temp/CpGs_outside.bed", sep="\t",col.names=F,row.names=F,quote=F)
 }
   
