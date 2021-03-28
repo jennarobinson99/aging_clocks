@@ -20,7 +20,7 @@ source $config_file
 
 for window_size in "$@"; do
 	echo "Analysing overlap with window size = $window_size"
-	sh sh_scripts/CpG_G4_overlap.sh $CpG_file $G4_file_plus $G4_file_minus $chain_file $genome_file $output_file $window_size $name $CpG_vs_CGI
+	sh sh_scripts/CpG_G4_overlap.sh $CpG_file $G4_file_plus $G4_file_minus $chain_file $genome_file $output_file $window_size $name $CpG_vs_CGI $separate_CGI_context
 done
 echo "Producing figures..."
 CpG_file="out/${name}_CpGs_in_G4s_ws_${window_size_CpG_dist_plot}.bed"
