@@ -52,26 +52,33 @@ G4s_oI <- read.csv(G4_bed_file, header=FALSE, sep="\t", col.names=c("chr", "star
 CpGs_pos <- CpGs_oI %>% filter(weight > 0) %>% mutate(correlation = "Positive")
 CpGs_neg <- CpGs_oI %>% filter(weight < 0) %>% mutate(correlation = "Negative")
 CpGs_oI <- rbind(CpGs_pos, CpGs_neg)
+sprintf("%.2f percent of CpGs correlate positively.", 100*nrow(CpGs_pos)/nrow(CpGs_oI))
+sprintf("%.2f percent of CpGs correlate negatively.", 100*nrow(CpGs_neg)/nrow(CpGs_oI))
+#plot the distribution
+ggplot(CpGs_oI) +
+	geom_bar(aes(x=chr)) + 
+	facet_grid(correlation~.)
+	ggsave(figure_name_chr_dist) 
 
 # 3. Check which CpGs lie within CGIs
-intersected_file_name <- "temp/CpG_CGI_intersect.bed"
-command <- paste("bedtools intersect -wa -a", CpG_bed_file, "-b", CGI_map_file, ">", intersected_file_name, sep=" ")
-cat(command, "\n")
-try(system(command))
-CpGs_in_CGI <- read.csv(intersected_file_name, header=F, sep="\t", col.names=c("chr", "start", "end", "weight", "correlation"))
-CpGs_unmethylated <- CpGs_oI %>% filter(weight %in% CpGs_in_CGI[,"weight"]) %>% mutate(CGI = "within CGI")
-CpGs_methylated <- CpGs_oI %>% filter(!(weight %in% CpGs_in_CGI[,"weight"])) %>% mutate(CGI = "outside CGI")
-CpGs_oI <- rbind(CpGs_unmethylated, CpGs_methylated) 
-write.table(CpGs_oI, file="out/CpG_info.bed", sep="\t",quote=F)
-
-# plot CpG distribution 
-ggplot(CpGs_oI) + 
-  geom_bar(aes(x=chr)) + 
-  facet_grid(correlation~.)
-ggsave(figure_name_chr_dist)
-# plot CGI context
-ggplot(CpGs_oI) + 
-  geom_bar(aes(x=chr)) + 
-  facet_grid(CGI~.)
-ggsave(figure_name_CGI_context)
-
+if (CGI_map_file=="-"){
+	print("No CGI map file supplied")
+} else {
+	intersected_file_name <- "temp/CpG_CGI_intersect.bed"
+	command <- paste("bedtools intersect -wa -a", CpG_bed_file, "-b", CGI_map_file, ">", intersected_file_name, sep=" ")
+	cat(command, "\n")
+	try(system(command))
+	CpGs_in_CGI <- read.csv(intersected_file_name, header=F, sep="\t", col.names=c("chr", "start", "end", "weight", "correlation"))
+	CpGs_unmethylated <- CpGs_oI %>% filter(weight %in% CpGs_in_CGI[,"weight"]) %>% mutate(CGI = "within CGI")
+	CpGs_methylated <- CpGs_oI %>% filter(!(weight %in% CpGs_in_CGI[,"weight"])) %>% mutate(CGI = "outside CGI")
+	CpGs_oI <- rbind(CpGs_unmethylated, CpGs_methylated) 
+	write.table(CpGs_oI, file="out/CpG_info.bed", sep="\t",quote=F)
+	# plot CGI context
+	ggplot(CpGs_oI) + 
+		geom_bar(aes(x=chr)) +
+		facet_grid(CGI~.)
+	ggsave(figure_name_CGI_context)
+	print("Results:")
+	sprintf("%.2f percent of CpGs lie within CGIs.", 100* nrow(CpGs_unmethylated)/nrow(CpGs_oI))
+	sprintf("%.2f percent of CpGs lie outside of CGIs.", 100 * nrow(CpGs_methylated)/nrow(CpGs_oI)) 
+}

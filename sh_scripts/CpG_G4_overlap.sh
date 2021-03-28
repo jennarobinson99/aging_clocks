@@ -44,13 +44,17 @@ echo "... concatenated G4 files."
 # Intersecting files
 echo "Finding G4s with overlap to CpG windows..."
 name_G4_out_file="out/${name}_G4s_in_CpGs_ws_${window_size}.bed"
-bedtools intersect -wa -a temp/G4s.bed -b temp/CpGs_ext.bed > $name_G4_out_file
+bedtools intersect -wa -a temp/G4s.bed -b temp/CpGs_ext.bed > temp/overlap.bed
+sort -k1,1 -k2,2n temp/overlap.bed > temp/overlap_sorted.bed
+bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > $name_G4_out_file
 n_G4s=$(wc -l $name_G4_out_file | awk '{print $1}')
 echo "Number of G4s found to lie within CpGs: $n_G4s"
 
 echo "Finding CpGs with overlap to G4s..."
 name_CpG_out_file="out/${name}_CpGs_in_G4s_ws_${window_size}.bed"
-bedtools intersect -wa -a temp/CpGs_ext.bed -b temp/G4s.bed > $name_CpG_out_file
+bedtools intersect -wa -a temp/CpGs_ext.bed -b temp/G4s.bed > temp/overlap.bed
+sort -k1,1 -k2,2n temp/overlap.bed >temp/overlap_sorted.bed
+bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > $name_CpG_out_file
 n_CpGs=$(wc -l $name_CpG_out_file | awk '{print $1}')
 echo "Number of CpGs found to lie within G4s: $n_CpGs"
 
@@ -71,8 +75,10 @@ then
         #Shuffle DATA
         bedtools shuffle -incl $CGI_map_file -seed $i -i temp/CpGs_ext.bed -g $genome_file > temp/pseudo_CGIs.bed
 
-        bedtools intersect -wa -a temp/pseudo_CGIs.bed -b temp/G4s.bed > temp/pseudo_CGI_G4_overlap.bed
-        n_pseudo_CGIs=$(wc -l temp/pseudo_CGI_G4_overlap.bed | awk '{print $1}')
+        bedtools intersect -wa -a temp/pseudo_CGIs.bed -b temp/G4s.bed > temp/overlap.bed
+        sort -k1,1 -k2,2n temp/overlap.bed > temp/overlap_sorted.bed
+	bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > temp/pseudo_CGI_G4_overlap.bed
+	n_pseudo_CGIs=$(wc -l temp/pseudo_CGI_G4_overlap.bed | awk '{print $1}')
         echo "Number of pseudo CGI found: $n_pseudo_CGIs"
 	# calcuate running average with bc program
         CGI_average=$(echo "scale=6;$CGI_average+1/3*$n_pseudo_CGIs" | bc)
@@ -99,13 +105,17 @@ else
         bedtools shuffle -i temp/CpGs_ext.bed -g $genome_file -seed $i > temp/CpGs_ext_shuffled.bed
 
         #calculate number of G4s that lie within shuffled CpGs
-        bedtools intersect -wa -a temp/G4s.bed -b temp/CpGs_ext_shuffled.bed > temp/G4s_in_shuffled_CpGs_temp.bed
-        n_G4s_temp=$(wc -l temp/G4s_in_shuffled_CpGs_temp.bed | awk '{print $1}')
+        bedtools intersect -wa -a temp/G4s.bed -b temp/CpGs_ext_shuffled.bed > temp/overlap.bed
+        sort -k1,1 -k2,2n temp/overlap.bed > temp/overlap_sorted.bed
+	bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > temp/G4s_in_shuffled_CpGs_temp.bed
+	n_G4s_temp=$(wc -l temp/G4s_in_shuffled_CpGs_temp.bed | awk '{print $1}')
         # calculate running average with bc program
         mean_G4s=$(echo "scale=6;$mean_G4s+1/3*$n_G4s_temp" | bc)
 
         #calculate number of CpGs that lie within G4s
-        bedtools intersect -wa -a temp/CpGs_ext.bed -b temp/G4s_shuffled.bed > temp/CpGs_in_shuffled_G4s_temp.bed
+        bedtools intersect -wa -a temp/CpGs_ext.bed -b temp/G4s_shuffled.bed > temp/overlap.bed
+	sort -k1,1 -k2,2n temp/overlap.bed > temp/overlap_sorted.bed
+	bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > temp/CpGs_in_shuffled_G4s_temp.bed
         n_CpGs_temp=$(wc -l temp/CpGs_in_shuffled_G4s_temp.bed | awk '{print $1}')
         # calcuate running average with bc program
         mean_CpGs=$(echo "scale=6;$mean_CpGs+1/3*$n_CpGs_temp" | bc)
