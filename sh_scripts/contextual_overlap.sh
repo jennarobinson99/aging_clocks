@@ -48,7 +48,7 @@ bedtools intersect -wa -a temp/CpGs_within.bed -b temp/G4s.bed > temp/overlap.be
 sort -k1,1 -k2,2n temp/overlap.bed > temp/overlap_sorted.bed
 bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > $name_CpGs_within_file
 n_within_CpGs=$(wc -l $name_CpGs_within_file | awk '{print $1}')
-echo "Number of CGI-associated CpGs found to lie in G4s: $n_G4s"
+echo "Number of CGI-associated CpGs found to lie in G4s: $n_within_CpGs"
 
 # outside CGI
 echo "Finding non-CGI CpGs that lie in G4s..."
@@ -57,7 +57,7 @@ bedtools intersect -wa -a temp/CpGs_outside.bed -b temp/G4s.bed > temp/overlap.b
 sort -k1,1 -k2,2n temp/overlap.bed >temp/overlap_sorted.bed
 bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > $name_CpGs_outside_file
 n_outside_CpGs=$(wc -l $name_CpGs_outside_file | awk '{print $1}')
-echo "Number of non-CGI CpGs found to lie within G4s: $n_CpGs"
+echo "Number of non-CGI CpGs found to lie within G4s: $n_outside_CpGs"
 
 # Assess Fold enrichment
 echo "Control case: shuffle G4 coordinates and overlap again..."
@@ -76,7 +76,7 @@ do
     bedtools shuffle -i temp/G4s.bed -g $genome_file -seed $i > temp/G4s_shuffled.bed
 
     #calculate number of CGI-CpGs that lie within shuffled G4s
-    bedtools intersect -wa -a temp/CpGs_within -b temp/G4s_shuffled.bed > temp/overlap.bed
+    bedtools intersect -wa -a temp/CpGs_within.bed -b temp/G4s_shuffled.bed > temp/overlap.bed
     sort -k1,1 -k2,2n temp/overlap.bed > temp/overlap_sorted.bed
     bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > temp/CpGs_in_shuffled_G4s_temp.bed
     n_CpGs_within_temp=$(wc -l temp/CpGs_in_shuffled_G4s_temp.bed | awk '{print $1}')
@@ -84,10 +84,11 @@ do
     mean_CpGs_within=$(echo "scale=6;$mean_CpGs_within+1/3*$n_CpGs_within_temp" | bc)
 
     #calculate number of non-CGI-CpGs that lie within G4s
-    bedtools intersect -wa -a temp/CpGs_outside.bed -b temp/G4s_shuffled.bed > temp/overlap.bed
+	echo "debugging1"    
+bedtools intersect -wa -a temp/CpGs_outside.bed -b temp/G4s_shuffled.bed > temp/overlap.bed
     sort -k1,1 -k2,2n temp/overlap.bed > temp/overlap_sorted.bed
     bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > temp/CpGs_in_shuffled_G4s_temp.bed
-    n_CpGs_outisde_temp=$(wc -l temp/CpGs_in_shuffled_G4s_temp.bed | awk '{print $1}')
+    n_CpGs_outside_temp=$(wc -l temp/CpGs_in_shuffled_G4s_temp.bed | awk '{print $1}')
     # calcuate running average with bc program
     mean_CpGs_outside=$(echo "scale=6;$mean_CpGs_outside+1/3*$n_CpGs_outside_temp" | bc)
 done
