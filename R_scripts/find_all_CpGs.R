@@ -1,17 +1,24 @@
 library(tidyverse)
 library(Biostrings)
-library(BSgenome.Hsapiens.UCSC.hg38)
+library(BSgenome.Hsapiens.UCSC.hg19)
+library(seqinr)
+setwd("D:/proj_epigen/aging_clocks")
 
 # load genome
-genome <- BSgenome.Hsapiens.UCSC.hg38
-chromosomes <-seqnames(genome)[0:24]
+genome <- BSgenome.Hsapiens.UCSC.hg19
+chromosomes <-seqnames(genome)[0:22]
 pattern <- "CG"
 
 # get number of CpGs in all chromosomes and find genomic coordinates
-CpG_occurence <- vector(mode='list', length=25)
+CpG_occurence <- vector(mode='list', length=23)
 names(CpG_occurence) <- c(chromosomes, 'total')
 total <- 0
 CpG_coordinates <- tibble()
+sequences <- tibble()
+seqs_chr <- vector(mode='list', length=22)
+#apply window to CpG locations and save in extended CpG coordinates tibble
+extension_bases <- 25
+first <- 1
 
 # loop through chromosomes to get CpGs for each one
 for (chr_name in chromosomes) {
@@ -23,38 +30,27 @@ for (chr_name in chromosomes) {
   #match pattern to get genomic coordinates of each CpG
   seqs <- matchPattern(pattern, current_chr) #gets XStringView object of coordinates
   seqs <- as(seqs, "IRanges") #convert object to IRanges object
+  
   # get start and end coordinates, save in temporary tibble, then combine with
   # data from other chromosomes
-  starts <- start(seqs) 
-  ends <- end(seqs)
+  starts <- start(seqs) - extension_bases 
+  ends <- end(seqs) + extension_bases
   cur_chr_tibble <- tibble(chr=chr_name, start=starts, end=ends)
   CpG_coordinates <- rbind(CpG_coordinates, cur_chr_tibble)
+  
+  #get sequence
+  sequence <- as.list(unname(Biostrings::getSeq(BSgenome.Hsapiens.UCSC.hg19, chr_name, starts, ends, as.character=T)))
+  
+  # create unique identifiers for each sequence
+  final <- first + length(sequence) - 1
+  ids <- c(first:final)
+  id_string <- paste("Sequence_", as.character(ids), sep="")
+  identifiers <- paste(id_string,chr_name,sep="|")
+  
+  # construct new fasta file with sequences
+  write.fasta(sequence, identifiers, "sequences/all_CpG_seq.fasta", open="a", as.string=T)
+  
 }
-CpG_occurence[[25]] <- total
+CpG_occurence[[23]] <- total
 
-#apply window to CpG locations and save in extended CpG coordinates tibble
-extension_bases <- 25
-CpG_coordinates_ext <- CpG_coordinates %>% mutate(end=start+extension_bases, start=start-extension_bases)
-
-# write data to file
-# write coordinates to .bed file
-write.table(CpG_coordinates, file="out/global_CpGs.bed", sep="\t", col.names = F, row.names = F, quote = F)
-# write CpG occurances into .csv file
-write.table(CpG_occurence, file="out/global_CpGs_occurence.csv", sep=";", col.names = T, row.names = F, quote = F)
-# write extended coordinates table (where window function was applied)
-write.table(CpG_coordinates_ext, file="out/global_CpGs_ext.bed", sep="\t", col.names = F, row.names = F, quote = F)
-
-# find corresponding sequences
-# get sequence from genome 
-coordinates <- CpG_coordinates_ext
-chromosomes <-coordinates[,"chr"]
-starts <- coordinates[,"start"]
-ends <- coordinates[,"ends"]
-sequences <- as.list(unname(Biostrings::getSeq(BSgenome.Hsapiens.UCSC.hg38, chromosomes, starts, ends, as.character=T)))
-# create unique identifiers for each sequence
-ids <- c(1:length(chromosomes))
-id_string <- paste("Sequence_", as.character(ids), sep="")
-identifiers <- paste(id_string,chromosomes,sep="|")
-
-# construct new fasta file with sequences
-write.fasta(sequences, identifiers, "sequences/horvath_sequences.fasta", open="w", as.string=T)
+write.table(CpG_coordinates, file="data/CpG_lists/all_CpGs_hg19.bed", sep="\t", col.names = F, row.names = F, quote = F)
