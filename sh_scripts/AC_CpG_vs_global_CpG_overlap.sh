@@ -11,7 +11,7 @@ genome_file=$5 # bed file specifying shuffleling ranges for overlap
 output_file=$6 # desired output file name for fold enrichment results
 window_size=$7 # window size around CpGs
 name=$8 #name extension of output files
-CpG_vs_CGI=$9 #test enrichment vs global or vs CGI sites?
+all_CpGs_file=$9 #test enrichment vs global or vs CGI sites?
 echo -e "Processing files..."
 echo -e "CpG file: \t $CpG_file"
 echo -e "G4 files: \t $G4_file_plus (plus), $G4_file_minus (minus)"
@@ -20,6 +20,7 @@ echo -e "Genome file: \t $genome_file"
 echo -e "Output file: \t $output_file"
 echo -e "Window size: \t $window_size"
 echo -e "Name: \t $name"
+echo -e "File containing genome-wide CpGs: \t $all_CpGs_file"
 echo "Transforming CpG format from .csv to .bed ..."
 Rscript --vanilla R_scripts/csv_to_bed.R $CpG_file temp/CpGs_locs.bed
 echo "... finished transforming."
@@ -52,7 +53,7 @@ echo "Number of G4s found to lie within aging clock CpGs: $n_G4s_AC"
 
 echo "Finding G4s with overlap to all CpGs..."
 name_CpG_out_file="out/global_CpGs_in_G4s_ws_${window_size}.bed"
-bedtools intersect -wa -a temp/G4s.bed -b data/CpG_lists/all_CpGs_hg19_ext.bed > temp/overlap.bed
+bedtools intersect -wa -a temp/G4s.bed -b $all_CpGs_file > temp/overlap.bed
 sort -k1,1 -k2,2n temp/overlap.bed >temp/overlap_sorted.bed
 bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > $name_CpG_out_file
 n_G4s_global=$(wc -l $name_CpG_out_file | awk '{print $1}')
@@ -82,12 +83,12 @@ do
     mean_G4s_AC=$(echo "scale=6;$mean_G4s_AC+1/3*$n_G4s_temp" | bc)
 
     #calculate number of G4s that lie within all CpGs in the genome
-    bedtools intersect -wa -a temp/G4s_shuffled.bed -b data/CpG_lists/all_CpGs_hg19_ext.bed > temp/overlap.bed
+    bedtools intersect -wa -a temp/G4s_shuffled.bed -b $all_CpGs_file > temp/overlap.bed
     sort -k1,1 -k2,2n temp/overlap.bed > temp/overlap_sorted.bed
     bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > temp/CpGs_in_shuffled_G4s_temp.bed
     n_G4s_temp=$(wc -l temp/CpGs_in_shuffled_G4s_temp.bed | awk '{print $1}')
     # calcuate running average with bc program
-    mean_CpGs_global=$(echo "scale=6;$mean_CpGs_global+1/3*$n_G4s_temp" | bc)
+    mean_G4s_global=$(echo "scale=6;$mean_G4s_global+1/3*$n_G4s_temp" | bc)
 done
 
 #Calculate fold enrichment
