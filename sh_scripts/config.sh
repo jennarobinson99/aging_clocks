@@ -9,3 +9,4 @@ CGI_map_file="data/CGI_maps/hg19_CGI_map.bed"
 window_size_CpG_dist_plot="50"
 organism="Human"
 CpG_vs_CGI="0" #enrichment test: only set to 1 if wanna test G4 enrichment at CpGs vs CGIs, otherwise leave blank
+all_CpGs_file="data/CpG_lists/all_CpGs_hg19_ws_50.bed" #only important for when running script AC_CpG_vs_global_CpG.sh

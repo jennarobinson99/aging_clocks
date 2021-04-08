@@ -1,12 +1,12 @@
 library(tidyverse)
 library(Biostrings)
-library(BSgenome.Hsapiens.UCSC.hg19)
+library(BSgenome.Mmusculus.UCSC.mm10)
 library(seqinr)
 setwd("D:/proj_epigen/aging_clocks")
 
 # load genome
-genome <- BSgenome.Hsapiens.UCSC.hg19
-chromosomes <-seqnames(genome)[0:22]
+genome <- BSgenome.Mmusculus.UCSC.mm10
+chromosomes <-seqnames(genome)[0:19]
 pattern <- "CG"
 
 # get number of CpGs in all chromosomes and find genomic coordinates
@@ -17,7 +17,7 @@ CpG_coordinates <- tibble()
 sequences <- tibble()
 seqs_chr <- vector(mode='list', length=22)
 #apply window to CpG locations and save in extended CpG coordinates tibble
-extension_bases <- 25
+extension_bases <- 500
 first <- 1
 
 # loop through chromosomes to get CpGs for each one
@@ -38,19 +38,29 @@ for (chr_name in chromosomes) {
   cur_chr_tibble <- tibble(chr=chr_name, start=starts, end=ends)
   CpG_coordinates <- rbind(CpG_coordinates, cur_chr_tibble)
   
-  #get sequence
-  sequence <- as.list(unname(Biostrings::getSeq(BSgenome.Hsapiens.UCSC.hg19, chr_name, starts, ends, as.character=T)))
-  
-  # create unique identifiers for each sequence
-  final <- first + length(sequence) - 1
-  ids <- c(first:final)
-  id_string <- paste("Sequence_", as.character(ids), sep="")
-  identifiers <- paste(id_string,chr_name,sep="|")
-  
-  # construct new fasta file with sequences
-  write.fasta(sequence, identifiers, "sequences/all_CpG_seq.fasta", open="a", as.string=T)
+  # #get sequence
+  # sequence <- as.list(unname(Biostrings::getSeq(genome, chr_name, starts, ends, as.character=T)))
+  # 
+  # # create unique identifiers for each sequence
+  # final <- first + length(sequence) - 1
+  # ids <- c(first:final)
+  # id_string <- paste("Sequence_", as.character(ids), sep="")
+  # identifiers <- paste(id_string,chr_name,sep="|")
+  # 
+  # # construct new fasta file with sequences
+  # write.fasta(sequence, identifiers, "sequences/all_CpG_mouse_seq.fasta", open="a", as.string=T)
   
 }
 CpG_occurence[[23]] <- total
 
-write.table(CpG_coordinates, file="data/CpG_lists/all_CpGs_hg19.bed", sep="\t", col.names = F, row.names = F, quote = F)
+# merge coordinates before saving 
+r <- makeGRangesFromDataFrame(CpG_coordinates, keep.extra.columns = T)
+r <- reduce(r)
+starts <- start(ranges(r))
+ends <- end(ranges(r))
+chroms <- as.data.frame(seqnames(r))
+merged_coor <- cbind(chroms, starts, ends)
+
+
+write.table(merged_coor, file="data/CpG_lists/all_CpGs_hg19_ws_50_merged.bed", sep="\t", col.names = F, row.names = F, quote = F)
+
