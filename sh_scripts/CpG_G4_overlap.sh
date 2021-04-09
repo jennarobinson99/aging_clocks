@@ -105,19 +105,33 @@ else
         bedtools shuffle -i temp/CpGs_ext.bed -g $genome_file -seed $i > temp/CpGs_ext_shuffled.bed
 
         #calculate number of G4s that lie within shuffled CpGs
-        bedtools intersect -wa -a temp/G4s.bed -b temp/CpGs_ext_shuffled.bed > temp/overlap.bed
-        sort -k1,1 -k2,2n temp/overlap.bed > temp/overlap_sorted.bed
-	bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > temp/G4s_in_shuffled_CpGs_temp.bed
-	n_G4s_temp=$(wc -l temp/G4s_in_shuffled_CpGs_temp.bed | awk '{print $1}')
-        # calculate running average with bc program
+        echo "Intersect G4s with CpGs shuffled"
+	bedtools intersect -wa -a temp/G4s.bed -b temp/CpGs_ext_shuffled.bed > temp/overlap.bed
+        if [ $(wc -l temp/overlap.bed | awk '{print $1}') -eq 0 ]
+	then
+		n_G4s_temp=0
+	else	
+		sort -k1,1 -k2,2n temp/overlap.bed > temp/overlap_sorted.bed
+		bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > temp/G4s_in_shuffled_CpGs_temp.bed
+		n_G4s_temp=$(wc -l temp/G4s_in_shuffled_CpGs_temp.bed | awk '{print $1}')
+        fi
+	echo "Number of G4s $n_G4s_temp"
+	# calculate running average with bc program
         mean_G4s=$(echo "scale=6;$mean_G4s+1/3*$n_G4s_temp" | bc)
-
+	
         #calculate number of CpGs that lie within G4s
-        bedtools intersect -wa -a temp/CpGs_ext.bed -b temp/G4s_shuffled.bed > temp/overlap.bed
-	sort -k1,1 -k2,2n temp/overlap.bed > temp/overlap_sorted.bed
-	bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > temp/CpGs_in_shuffled_G4s_temp.bed
-        n_CpGs_temp=$(wc -l temp/CpGs_in_shuffled_G4s_temp.bed | awk '{print $1}')
-        # calcuate running average with bc program
+        echo "Intersect CpGs with G4s shuffled"
+	bedtools intersect -wa -a temp/CpGs_ext.bed -b temp/G4s_shuffled.bed > temp/overlap.bed
+	if [ $(wc -l temp/overlap.bed | awk '{print $1}') -eq 0 ]
+	then
+		n_CpGs_temp=0
+	else
+		sort -k1,1 -k2,2n temp/overlap.bed > temp/overlap_sorted.bed
+		bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > temp/CpGs_in_shuffled_G4s_temp.bed
+        	n_CpGs_temp=$(wc -l temp/CpGs_in_shuffled_G4s_temp.bed | awk '{print $1}')
+        fi
+	echo "Number of CpGs $n_CpGs_temp"
+	# calcuate running average with bc program
         mean_CpGs=$(echo "scale=6;$mean_CpGs+1/3*$n_CpGs_temp" | bc)
     done
 
@@ -128,5 +142,5 @@ else
     echo "CpGs are enriched at G4 sites to a fold enrichment value of: $FE_CpGs"
 
     #write input_file, FE and window size to file
-    echo -e "$CpG_file; $window_size; $FE_G4s; $FE_CpGs" >> $output_file
+    echo -e "$CpG_file; $window_size; $n_G4s; $FE_G4s; $n_CpGs; $FE_CpGs" >> $output_file
 fi
