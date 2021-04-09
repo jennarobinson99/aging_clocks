@@ -17,6 +17,8 @@ source $config_file
 #echo $name
 #echo $window_size_CpG_dist_plot
 
+# header for output file
+echo "CpG_file; window_size; n_G4s; FE_G4s; n_CpGs; FE_CpGs" > $output_file
 
 for window_size in "$@"; do
 	echo "Analysing overlap with window size = $window_size"

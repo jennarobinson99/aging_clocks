@@ -28,7 +28,7 @@ if (length(args)!=8) {
 
 # 1. plot fold enrichment vs. window size 
 # load data
-overlap_data <- read.csv(FE_file, header = FALSE, sep = ";", col.names = c("input_file","window_size","FE_G4s", "FE_CpGs"))
+overlap_data <- read.csv(FE_file, header = TRUE, sep = ";")
 # plot G4s
 ggplot(overlap_data) +
   geom_point(aes(x = window_size, y= FE_G4s)) + 
