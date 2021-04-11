@@ -19,11 +19,11 @@ source $config_file
 echo $all_CpGs_file
 
 # write header to output file
-echo "CpG_file; window_size; n_G4s_AC; FE_G4s_AC; n_G4s_global; FE_G4s_global" > $output_file
+echo "CpG_file; window_size; n_CpGs_AC; FE_CpGs_AC; n_CpGs_global; FE_CpGs_global" > $output_file
 
 for window_size in "$@"; do
 	echo "Analysing overlap with window size = $window_size"
-	sh sh_scripts/AC_CpG_vs_global_CpG_overlap.sh $CpG_file $G4_file_plus $G4_file_minus $chain_file $genome_file $output_file $window_size $name $all_CpGs_file
+	sh sh_scripts/global_CpG_vs_G4_overlap.sh $CpG_file $G4_file_plus $G4_file_minus $chain_file $genome_file $output_file $window_size $name $all_CpGs_file
 done
 echo "Producing figures..."
 CpG_file="out/${name}_CpGs_in_G4s_ws_${window_size_CpG_dist_plot}.bed"

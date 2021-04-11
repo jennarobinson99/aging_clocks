@@ -45,17 +45,17 @@ echo "... concatenated G4 files."
 # Intersecting files
 echo "Finding G4s with overlap to AC CpG windows..."
 name_G4_out_file="out/${name}_G4s_in_CpGs_ws_${window_size}.bed"
-bedtools intersect -wa -a temp/G4s.bed -b temp/CpGs_ext.bed > temp/overlap.bed
+bedtools intersect -wa -a temp/CpGs_ext.bed -b temp/G4s.bed > temp/overlap.bed
 sort -k1,1 -k2,2n temp/overlap.bed > temp/overlap_sorted.bed
-bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > $name_G4_out_file
+bedtools merge -i temp/overlap_sorted.bed > $name_G4_out_file
 n_G4s_AC=$(wc -l $name_G4_out_file | awk '{print $1}')
 echo "Number of G4s found to lie within aging clock CpGs: $n_G4s_AC"
 
 echo "Finding G4s with overlap to all CpGs..."
 name_CpG_out_file="out/global_CpGs_in_G4s_ws_${window_size}.bed"
-bedtools intersect -wa -a temp/G4s.bed -b $all_CpGs_file > temp/overlap.bed
+bedtools intersect -wa -a $all_CpGs_file -b temp/G4s.bed > temp/overlap.bed
 sort -k1,1 -k2,2n temp/overlap.bed >temp/overlap_sorted.bed
-bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > $name_CpG_out_file
+bedtools merge -i temp/overlap_sorted.bed > $name_CpG_out_file
 n_G4s_global=$(wc -l $name_CpG_out_file | awk '{print $1}')
 echo "Number of G4s found to lie within all CpGs in the genome: $n_G4s_global"
 
@@ -75,17 +75,17 @@ do
     bedtools shuffle -i temp/G4s.bed -g $genome_file -seed $i > temp/G4s_shuffled.bed
 
     #calculate number of G4s that lie within shuffled aging clock CpGs
-    bedtools intersect -wa -a temp/G4s_shuffled.bed -b temp/CpGs_ext.bed > temp/overlap.bed
+    bedtools intersect -wa -a temp/CpGs_ext.bed -b temp/G4s_shuffled.bed > temp/overlap.bed
     sort -k1,1 -k2,2n temp/overlap.bed > temp/overlap_sorted.bed
-    bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > temp/G4s_in_shuffled_CpGs_temp.bed
+    bedtools merge -i temp/overlap_sorted.bed > temp/G4s_in_shuffled_CpGs_temp.bed
     n_G4s_temp=$(wc -l temp/G4s_in_shuffled_CpGs_temp.bed | awk '{print $1}')
     # calculate running average with bc program
     mean_G4s_AC=$(echo "scale=6;$mean_G4s_AC+1/3*$n_G4s_temp" | bc)
 
     #calculate number of G4s that lie within all CpGs in the genome
-    bedtools intersect -wa -a temp/G4s_shuffled.bed -b $all_CpGs_file > temp/overlap.bed
+    bedtools intersect -wa -a $all_CpGs_file -b temp/G4s_shuffled.bed > temp/overlap.bed
     sort -k1,1 -k2,2n temp/overlap.bed > temp/overlap_sorted.bed
-    bedtools merge -i temp/overlap_sorted.bed -c 4 -o mean > temp/CpGs_in_shuffled_G4s_temp.bed
+    bedtools merge -i temp/overlap_sorted.bed > temp/CpGs_in_shuffled_G4s_temp.bed
     n_G4s_temp=$(wc -l temp/CpGs_in_shuffled_G4s_temp.bed | awk '{print $1}')
     # calcuate running average with bc program
     mean_G4s_global=$(echo "scale=6;$mean_G4s_global+1/3*$n_G4s_temp" | bc)
@@ -94,8 +94,8 @@ done
 #Calculate fold enrichment
 FE_G4s_AC=$(echo "scale=6;$n_G4s_AC/$mean_G4s_AC" | bc)
 FE_G4s_global=$(echo "scale=6;$n_G4s_global/$mean_G4s_global" | bc)
-echo "G4s are enriched at aging clock CpG sites to a fold enrichment value of: $FE_G4s_AC"
-echo "G4s are enriched at genome-wide CpGs to a fold enrichment value of: $FE_G4s_global"
+echo "Aging clock CpGs are enrichet at G4s to a fold enrichment value of: $FE_G4s_AC"
+echo "Genome-wide CpGs are enriched at G4s to a fold enrichment value of: $FE_G4s_global"
 
 #write input_file, FE and window size to file
 echo -e "$CpG_file; $window_size; $n_G4s_AC; $FE_G4s_AC; $n_G4s_global; $FE_G4s_global" >> $output_file
