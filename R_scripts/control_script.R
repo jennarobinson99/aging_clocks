@@ -31,5 +31,5 @@ CpG_locs <- lift_over(coordinates=CpG_locs, chain_file=chain_file)
 results <- analyse_window_size(query=CpG_locs, search_set=G4_locs, genome_file=genome_file, window_sizes=window_sizes)
 
 # 5) Plot results 
-plot_results(overlap_results=results, query_name="CpGs", search_set_name="G4s")
+plot_results(overlap_results=results, query_name="CpGs", search_set_name="G4s", figure_name_window_size = "out/test_window_size_vs_enrichtment.pdf")
 

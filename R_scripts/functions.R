@@ -70,9 +70,9 @@ analyse_window_size <- function(query=NULL, search_set=NULL, genome_file=NULL, w
   
   library(dplyr)
   i <- 1
-  num_overlaps <- vector()
-  fold_enrichment <- vector()
-  p_value <- vector()
+  num_overlaps <- numeric()
+  fold_enrichment <- numeric()
+  p_value <- numeric()
   for(window_size in window_sizes){
     query_ext <- query %>% mutate(start=start-round(window_size/2), end=end+round(window_size/2)-1)
     temp_results <- analyse_overlap(query=query_ext, search_set = search_set, genome_file=genome_file)
@@ -82,9 +82,27 @@ analyse_window_size <- function(query=NULL, search_set=NULL, genome_file=NULL, w
     i <- i + 1
   }
   
-  results <- cbind.data.frame(window_sizes, as.matrix(num_overlaps), as.matrix(fold_enrichment, digits=4), as.matrix(p_value))
+  results <- cbind.data.frame(window_sizes, as.numeric(num_overlaps), as.numeric(fold_enrichment), as.numeric(p_value))
   names(results) <- c("window_size", "num_overlaps", "fold_enrichment", "p_value")
   return(results)
+}
+
+
+plot_results <- function(overlap_results=NULL, query_name="CpGs", search_set_name="G4s", figure_name_window_size="out/window_size_vs_enrichment.pdf") {
+  ### Function visualises the results of overlap
+  
+  library(tidyverse)
+  library(scales)
+  ylabel <- paste("Fold enrichment of", query_name, "in", search_set_name, sep=" ")
+  xlabel <- paste("Window size in bp")
+  # plot G4s
+  ggplot(overlap_results) +
+    geom_point(aes(x = window_size, y = fold_enrichment)) + 
+    scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    ylab(ylabel) + 
+    xlab(xlabel)
+  ggsave(figure_name_window_size)
 }
 
 
