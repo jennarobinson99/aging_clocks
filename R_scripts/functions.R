@@ -1,7 +1,7 @@
 # This file contains all functions needed for overlap analysis. 
 
 
-overlap <- function(query=NULL, search_set=NULL){
+overlap <- function(query=NULL, search_set=NULL, reduce=T){
   ### A and B should be Ranges objects which can be reduced and overlapped (subset overlap, bedtools -wa mode)
   library(GenomicRanges)
   ranges_A <- makeGRangesFromDataFrame(query, keep.extra.columns = T)
@@ -9,17 +9,20 @@ overlap <- function(query=NULL, search_set=NULL){
 
   # subset overlap mode: giving subset of query that is overlapping
   overlap_ranges <- subsetByOverlaps(ranges_A, ranges_B) #returns subset of ranges_A which has overlap to ranges_B
-  red_overlap_ranges <- GenomicRanges::reduce(overlap_ranges) # merges potential duplicates
+  if (reduce){
+    overlap_ranges <- GenomicRanges::reduce(overlap_ranges) # merges potential duplicates
+  }
+ 
   # TODO: need to keep extra columns (e.g. coefficient / score) -> for duplicates, take average
   
   # convert to data frame, return resulting dataframe
-  overlap_coor <- GRanges_to_df(ranges=red_overlap_ranges)
+  overlap_coor <- GRanges_to_df(ranges=overlap_ranges)
   
   return(overlap_coor)
 }
 
 
-analyse_overlap <- function(query = NULL, search_set = NULL, genome_file=NULL, random_trials=5) {
+analyse_overlap <- function(query = NULL, search_set = NULL, genome_file=NULL, random_trials=5, all_CpGs_props=NULL) {
   ### Function overlaps two files and analyses the overlap
   
   library(regioneR)
@@ -50,40 +53,55 @@ analyse_overlap <- function(query = NULL, search_set = NULL, genome_file=NULL, r
   # Calculate fold enrichment
   if(average_rand_overlaps == 0) {
     print("Unable to calculate enrichment, zero random overlaps found. ")
+    enrichment <- NA
   } else {
     enrichment <- num_overlaps / average_rand_overlaps
   }
   
-  # Calculate p-value against the whole genome (using hypergeometric dist)
+  # Calculate p-value against the whole genome according to number of basepairs (using hypergeometric dist)
   num_bases <- sum(genome$end)
-  num_search_set_bases <- sum(search_set$end - search_set$start)
-  num_query_bases <- sum(query$end - query$start)
-  num_overlap_bases <- sum(overlap_coor$end - overlap_coor$start)
-  p_value <- phyper(q = num_overlap_bases, m = num_search_set_bases, n = (num_bases-num_search_set_bases), k = num_query_bases, lower.tail = F)
+  num_search_set_bases <- sum(search_set$end - search_set$start + 1)
+  num_query_bases <- sum(query$end - query$start + 1)
+  num_overlap_bases <- sum(overlap_coor$end - overlap_coor$start + 1)
+  p_value_bases <- phyper(q = num_overlap_bases, m = num_search_set_bases, n = (num_bases-num_search_set_bases), k = num_query_bases, lower.tail = F)
   
-  return(list("overlap_coordinates" = overlap_coor, "num_overlaps" = num_overlaps, "fold_enrichment" = enrichment, "p_value" = p_value))
+  # Calculate p-value against number of CpGs genome-wide according to number of CpGs (NOT basepairs)
+  if(!is.null(all_CpGs_props)){
+    num_all_CpGs <- all_CpGs_props[[1]]
+    num_all_CpGs_overlap <- all_CpGs_props[[2]]
+    num_AC_CpGs <- dim(query)[1]
+    num_AC_CpGs_overlap <- dim(overlap_coor)[1]
+    p_value_CpGs <- phyper(q=num_AC_CpGs_overlap, m=num_all_CpGs_overlap, n=(num_all_CpGs - num_all_CpGs_overlap), k=num_AC_CpGs, lower.tail=F)
+  } else {
+    p_value_CpGs <- NA
+  }
+  
+  return(list("overlap_coordinates" = overlap_coor, "num_overlaps" = num_overlaps, "fold_enrichment" = enrichment, "p_value_bp" = p_value_bases, "p_value_CpGs" = p_value_CpGs))
 }
 
 
-analyse_window_size <- function(query=NULL, search_set=NULL, genome_file=NULL, window_sizes=NULL){
+analyse_window_size <- function(query=NULL, search_set=NULL, genome_file=NULL, window_sizes=NULL, all_CpGs_props=NULL){
   ### Function loops through all given window sizes and calculates statistical metrics about distribution and enrichment for all. Outputs dataframe containing all results and produces graphs. 
   
   library(dplyr)
   i <- 1
   num_overlaps <- numeric()
   fold_enrichment <- numeric()
-  p_value <- numeric()
+  p_value_bp <- numeric()
+  p_value_CpGs <- numeric()
   for(window_size in window_sizes){
+    sprintf("Analysing window size: %i", window_size)
     query_ext <- query %>% mutate(start=start-round(window_size/2), end=end+round(window_size/2)-1)
-    temp_results <- analyse_overlap(query=query_ext, search_set = search_set, genome_file=genome_file)
+    temp_results <- analyse_overlap(query=query_ext, search_set = search_set, genome_file=genome_file, all_CpGs_props=all_CpGs_props)
     num_overlaps[i] <- temp_results["num_overlaps"]
     fold_enrichment[i] <- temp_results["fold_enrichment"]
-    p_value[i] <-  temp_results["p_value"]
+    p_value_bp[i] <-  temp_results["p_value_bp"]
+    p_value_CpGs[i] <- temp_results["p_value_CpGs"]
     i <- i + 1
   }
   
-  results <- cbind.data.frame(window_sizes, as.numeric(num_overlaps), as.numeric(fold_enrichment), as.numeric(p_value))
-  names(results) <- c("window_size", "num_overlaps", "fold_enrichment", "p_value")
+  results <- cbind.data.frame(window_sizes, as.numeric(num_overlaps), as.numeric(fold_enrichment), as.numeric(p_value_bp), as.numeric(p_value_CpGs))
+  names(results) <- c("window_size", "num_overlaps", "fold_enrichment", "p_value_bp", "p_value_CpGs")
   return(results)
 }
 
@@ -103,6 +121,26 @@ plot_results <- function(overlap_results=NULL, query_name="CpGs", search_set_nam
     ylab(ylabel) + 
     xlab(xlabel)
   ggsave(figure_name_window_size)
+}
+
+
+global_CpG_overlap <- function(all_CpGs_file=NULL, G4_locs=NULL, genome_file=genome_file, random_trials=3, reduce=T){
+  ### Function that loads and overlaps all CpGs in the genome and gives out overlap results
+  
+  library(GenomicRanges)
+  
+  # load all CpGs and merge / reduce entries
+  all_CpGs <- read.csv(all_CpGs_file, header=F, sep="\t")
+  names(all_CpGs) <- c("chromosome", "start", "end")
+  # all_CpGs_ranges <- makeGRangesFromDataFrame(all_CpGs)
+  # all_CpGs_ranges_red <- GenomicRanges::reduce(all_CpGs_ranges)
+  # all_CpGs <- GRanges_to_df(ranges=all_CpGs_ranges_red)
+  overlap_coor <- overlap(query = all_CpGs, search_set=G4_locs, reduce = reduce)
+  # overlap CpGs with G4s 
+  # (crashes if run!) results <- analyse_overlap(query=all_CpGs, search_set=G4_locs, genome_file=genome_file, random_trials=random_trials)
+  all_CpGs_props <- data.frame(dim(all_CpGs)[1], dim(overlap_coor)[1])
+  names(all_CpGs_props) <- c("num_CpGs", "num_overlaps")
+  return(all_CpGs_props)
 }
 
 
@@ -152,9 +190,13 @@ lift_over <- function(coordinates=NULL, chain_file=NULL) {
 load_G4_data <- function(G4_file_plus=NULL, G4_file_minus=NULL){
   ### Function loads in given G4 data
   library(dplyr)
-  G4_plus <- read.csv(G4_file_plus, header=F, sep="\t")
-  G4_minus <- read.csv(G4_file_minus, header=F, sep="\t")
-  G4_locs <- rbind.data.frame(G4_plus, G4_minus)
+  G4_locs <- read.csv(G4_file_plus, header=F, sep="\t")
+  if (!is.null(G4_file_minus)){
+    print("Two G4 files supplied.")
+    G4_minus <- read.csv(G4_file_minus, header=F, sep="\t")
+    G4_locs <- rbind.data.frame(G4_locs, G4_minus)
+  }
+  
   names(G4_locs) <- c("chromosome", "start", "end", "score")
   G4_locs <- G4_locs %>% arrange(chromosome, start, end) 
   G4_locs <- G4_locs %>% filter(chromosome!="chrX" & chromosome!="chrY" & chromosome!="chrM")
