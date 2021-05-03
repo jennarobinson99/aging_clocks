@@ -1,10 +1,18 @@
 {
    "CpG_file":"data/CpG_lists/Horvath_clock_CpGs.csv",
-   "G4_file_plus":"data/G4_maps/G4s_human_plus.bed",
-   "G4_file_minus":"data/G4_maps/G4s_human_minus.bed",
+   "G4_file_plus":"data/G4_maps/BG4_HEK_rep1.narrowPeak",
+   "G4_file_minus":"",
+   "ATAC_file":"data/ATAC_maps/ATAC_HEK_rep1.narrowPeak",
    "chain_file":"data/chain_files/hg18ToHg19.over.chain",
    "genome_file":"data/genome_files/hg19_chromInfo.txt",
-   "window_size_CpG_dist_plot":1000,
    "all_CpGs_file":"data/CpG_lists/all_CpGs_hg19_ws_50.bed",
-   "window_sizes":[0, 10, 20, 30, 40, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800, 900, 1000, 2000, 5000, 10000, 100000]
+   "all_CpGs_props_file":"out/all_CpGs_props/all_CpGs_props_BG4_HEK_rep1.csv", 
+   "window_sizes":[0,10, 20, 30, 40, 50, 70, 100, 200, 300, 400, 500, 700, 1000, 2000, 5000, 10000, 100000, 1000000], 
+   "CGI_map_file":"data/CGI_maps/hg19_CGI_map.bed",
+   "window_size_CpG_dist_plot":100,
+   "figure_name_window_size":"",
+   "figure_name_coefficient_dist":"",
+   "figure_name_CGI_dist":"",
+   "output_file":""
+   
 }
