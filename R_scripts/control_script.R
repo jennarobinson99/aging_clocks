@@ -30,7 +30,7 @@ output_file <- params[["output_file"]]
 ### Steps 1 to 5 show an overview over the complete pipeline: 
 
 # 1) Load G4 data and catenate both strands
-G4_locs <- load_G4_data(G4_file_plus, narrow_peak = T)
+G4_locs <- load_G4_data("data/G4_maps/BG4_K562.bed", narrow_peak = F)
 
 # 2) Load CpG data and convert from .csv to .bed format
 CpG_locs <- load_CpG_data(CpG_file = CpG_file)
@@ -42,9 +42,10 @@ CpG_locs <- lift_over(coordinates=CpG_locs, chain_file=chain_file)
 CpG_locs <- annotate_CpGs(CpG_coordinates=CpG_locs, CGI_map_file=CGI_map_file)
 
 # 4.5a) Get number of all CpGs and overlaps with G4s genome-wide (not aging clock, control case) (LONG execution time)
-# results_all_CpGs <- global_CpG_overlap(all_CpGs_file=all_CpGs_file, G4_locs=G4_locs,genome_file=genome_file, reduce=T)
+results_all_CpGs <- global_CpG_overlap(all_CpGs_file=all_CpGs_file, G4_locs=G4_locs,genome_file=genome_file, reduce=F, window_sizes=window_sizes)
+write.table(results_all_CpGs, file="out/all_CpGs_props/all_CpGs_props_BG4_K562.csv", sep=";", row.names = F)
 # 4.5b) Or read data from file (SHORT execution time)
-results_all_CpGs <- read.csv(file=all_CpGs_props_file, header=T, sep=";")
+#results_all_CpGs <- read.csv(file=all_CpGs_props_file, header=T, sep=";")
 
 # 5) Analyse window size
 results <- analyse_window_size(query=CpG_locs, search_set=G4_locs, genome_file=genome_file, window_sizes=window_sizes, all_CpGs_props=results_all_CpGs)
@@ -117,7 +118,7 @@ ATAC_data <- load_ATAC_data(ATAC_file=ATAC_file)
 CpG_locs <- load_CpG_data(CpG_file)
 CpG_locs <- lift_over(coordinates=CpG_locs, chain_file=chain_file)
 CpG_locs <- annotate_CpGs(CpG_coordinates=CpG_locs, CGI_map_file = CGI_map_file)
-G4_locs <- load_G4_data(G4_file_plus=G4_file_plus, narrow_peak=T)
+G4_locs <- load_G4_data(G4_file_plus=G4_file_plus, narrow_peak=F)
 all_CpGs_props <- read.csv(all_CpGs_props_file, sep=";")
 # Overlap G4 and ATAC-seq data
 overlap_G4_ATAC <- analyse_overlap(query=G4_locs, search_set = ATAC_data, genome_file = genome_file)

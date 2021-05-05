@@ -127,9 +127,14 @@ analyse_window_size <- function(query=NULL, search_set=NULL, genome_file=NULL, w
   
   for(window_size in window_sizes){
     sprintf("Analysing window size: %i", window_size)
+    #apply window size
     query_ext <- query %>% mutate(start=start-round(window_size/2), end=end+round(window_size/2)-1)
+    # select correct all_CpGs_props entry
+    ws <- window_size
+    curr_all_CpGs_props <- all_CpGs_props %>% filter(window_size==ws)
+    #get results for current window size
     temp_results <- analyse_overlap(query=query_ext, search_set = search_set, 
-                                    genome_file=genome_file, all_CpGs_props=all_CpGs_props)
+                                    genome_file=genome_file, all_CpGs_props=curr_all_CpGs_props)
     
     # save coordinates of overlapping G4s and CpGs and augment with coefficient from input
     overlap_coor[i] <- temp_results["overlap_coordinates"]
@@ -197,22 +202,28 @@ plot_results <- function(overlap_results=NULL, query_name="CpGs", search_set_nam
 }
 
 
-global_CpG_overlap <- function(all_CpGs_file=NULL, G4_locs=NULL, genome_file=genome_file, random_trials=3, reduce=T){
+global_CpG_overlap <- function(all_CpGs_file=NULL, G4_locs=NULL, genome_file=genome_file, random_trials=3, reduce=T, window_sizes=NULL){
   ### Function that loads and overlaps all CpGs in the genome and gives out overlap results
   
   library(GenomicRanges)
+  library(dplyr)
   
   # load all CpGs and merge / reduce entries
   all_CpGs <- read.csv(all_CpGs_file, header=F, sep="\t")
   names(all_CpGs) <- c("chromosome", "start", "end")
-  # all_CpGs_ranges <- makeGRangesFromDataFrame(all_CpGs)
-  # all_CpGs_ranges_red <- GenomicRanges::reduce(all_CpGs_ranges)
-  # all_CpGs <- GRanges_to_df(ranges=all_CpGs_ranges_red)
-  overlap_coor <- overlap(query = all_CpGs, search_set=G4_locs, reduce = reduce)
-  # overlap CpGs with G4s 
-  # (crashes if run!) results <- analyse_overlap(query=all_CpGs, search_set=G4_locs, genome_file=genome_file, random_trials=random_trials)
-  all_CpGs_props <- data.frame(dim(all_CpGs)[1], dim(overlap_coor)[1])
-  names(all_CpGs_props) <- c("num_CpGs", "num_overlaps")
+  all_CpGs_props <- data.frame()
+  
+  for(window_size in window_sizes){
+    print(window_size)
+    all_CpGs_temp <- all_CpGs %>% mutate(start=start-round(window_size/2), end=end+round(window_size/2))
+    overlap_coor <- overlap(query = all_CpGs_temp, search_set=G4_locs, reduce = reduce)
+    # overlap CpGs with G4s 
+    # (crashes if run!) results <- analyse_overlap(query=all_CpGs, search_set=G4_locs, genome_file=genome_file, random_trials=random_trials)
+    all_CpGs_props_temp <- data.frame(dim(all_CpGs)[1], dim(overlap_coor)[1], window_size)
+    all_CpGs_props <- rbind(all_CpGs_props, all_CpGs_props_temp)
+  }
+  
+  names(all_CpGs_props) <- c("num_CpGs", "num_overlaps", "window_size")
   return(all_CpGs_props)
 }
 
