@@ -30,7 +30,7 @@ output_file <- params[["output_file"]]
 ### Steps 1 to 5 show an overview over the complete pipeline: 
 
 # 1) Load G4 data and catenate both strands
-G4_locs <- load_G4_data("data/G4_maps/BG4_K562.bed", narrow_peak = F)
+G4_locs <- load_G4_data(G4_file_plus=G4_file_plus, G4_file_minus=G4_file_minus, narrow_peak = F)
 
 # 2) Load CpG data and convert from .csv to .bed format
 CpG_locs <- load_CpG_data(CpG_file = CpG_file)
@@ -42,10 +42,11 @@ CpG_locs <- lift_over(coordinates=CpG_locs, chain_file=chain_file)
 CpG_locs <- annotate_CpGs(CpG_coordinates=CpG_locs, CGI_map_file=CGI_map_file)
 
 # 4.5a) Get number of all CpGs and overlaps with G4s genome-wide (not aging clock, control case) (LONG execution time)
-results_all_CpGs <- global_CpG_overlap(all_CpGs_file=all_CpGs_file, G4_locs=G4_locs,genome_file=genome_file, reduce=F, window_sizes=window_sizes)
-write.table(results_all_CpGs, file="out/all_CpGs_props/all_CpGs_props_BG4_K562.csv", sep=";", row.names = F)
+#results_all_CpGs <- global_CpG_overlap(all_CpGs_file=all_CpGs_file, G4_locs=G4_locs,genome_file=genome_file, reduce=F, window_sizes=window_sizes)
+#write.table(results_all_CpGs, file = "out/all_CpGs_props/all_CpGs_props_all_G4s_mouse.csv", sep=";", row.names=F)
+
 # 4.5b) Or read data from file (SHORT execution time)
-#results_all_CpGs <- read.csv(file=all_CpGs_props_file, header=T, sep=";")
+results_all_CpGs <- read.csv(file=all_CpGs_props_file, header=T, sep=";")
 
 # 5) Analyse window size
 results <- analyse_window_size(query=CpG_locs, search_set=G4_locs, genome_file=genome_file, window_sizes=window_sizes, all_CpGs_props=results_all_CpGs)
@@ -62,9 +63,28 @@ plot_results(overlap_results=results, query_name="CpGs", search_set_name="G4s",
 write.table(results$stats, file=output_file, sep=";", row.names = F)
 
 ################################################################################
-
+################################################################################
 ### Miscellaneous specific analyses
 
+# Check CGI enrichment at G4s and reverse
+CGIs <- read.csv("data/CGI_maps/hg19_CGI_map.bed", sep="\t", header = F)
+names(CGIs) <- c("chromosome", "start", "end", "id", "CG_contenct", "score")
+CGIs <- CGIs %>% select(chromosome, start, end)
+CGIs <- CGIs %>% filter(!(chromosome=="chr11_gl000202_random"))
+G4s <- load_G4_data(G4_file_plus="data/G4_maps/G4s_human_plus.bed", G4_file_minus="data/G4_maps/G4s_human_minus.bed")
+#CGIs in G4s
+res_CGIs <- analyse_overlap(query=CGIs, search_set=G4s, genome_file="data/genome_files/hg19_chromInfo.txt")
+stats_CGI <- list("direction"="CGIs_in_G4s", "num_overlap"=res_CGIs$num_overlaps, "fold_enrichment"=res_CGIs$fold_enrichment, "p_value_bp"=res_CGIs$p_value_bp)
+stats_CGI <- data.frame(stats_CGI)
+# G4s in CGIs
+res_G4s <- analyse_overlap(query=G4s, search_set=CGIs, genome_file="data/genome_files/hg19_chromInfo.txt")
+stats_G4s <- list("direction"="G4s_in_CGIs", "num_overlap"=res_G4s$num_overlaps, "fold_enrichment"=res_G4s$fold_enrichment, "p_value_bp"=res_G4s$p_value_bp)
+stats_G4s <- data.frame(stats_G4s)
+stats_all <- rbind(stats_CGI, stats_G4s)
+# write to file
+write.table(stats_all, file="out/CGIs_G4s_stats.csv", sep=";", row.names=F)
+
+################################################################################
 
 # Analyse separately positive and negative correlation coefficients and compare their enrichments
 # load config.json file 
@@ -80,7 +100,7 @@ window_sizes <- params[["window_sizes"]]
 all_CpGs_file <- params[["all_CpGs_file"]]
 all_CpGs_props_file <- params[["all_CpGs_props_file"]]
 
-G4_locs <- load_G4_data(G4_file_plus, narrow_peak = T)
+G4_locs <- load_G4_data(G4_file_plus, narrow_peak = F)
 CpG_locs <- load_CpG_data(CpG_file = CpG_file)
 CpG_locs <- lift_over(coordinates=CpG_locs, chain_file=chain_file)
 CpG_locs <- annotate_CpGs(CpG_coordinates=CpG_locs, CGI_map_file=CGI_map_file)
@@ -89,19 +109,57 @@ CpGs_neg <- CpG_locs %>% filter(coefficient < 0)
 results_all_CpGs <- read.csv(file=all_CpGs_props_file, header=T, sep=";")
 results_pos <- analyse_window_size(query=CpGs_pos, search_set=G4_locs, genome_file=genome_file, window_sizes=window_sizes, all_CpGs_props=results_all_CpGs)
 results_neg <- analyse_window_size(query=CpGs_neg, search_set=G4_locs, genome_file=genome_file, window_sizes=window_sizes, all_CpGs_props=results_all_CpGs)
-write.table(results_pos$stats, file="out/pos_vs_neg/BG4s_K562/Levine_pos_stats.csv", sep=";", quote=F, row.names = F)
-write.table(results_neg$stats, file="out/pos_vs_neg/BG4s_K562/Levine_neg_stats.csv", sep=";", quote=F, row.names = F)
-plot_results(overlap_results = results_pos, query_name="positive CpGs", search_set_name="BG4s",
+write.table(results_pos$stats, file="out/pos_vs_neg/gw_G4s/Levine_pos_stats.csv", sep=";", quote=F, row.names = F)
+write.table(results_neg$stats, file="out/pos_vs_neg/gw_G4s/Levine_neg_stats.csv", sep=";", quote=F, row.names = F)
+plot_results(overlap_results = results_pos, query_name="positive CpGs", search_set_name="G4s",
              window_size=window_size_CpG_dist_plot,
-             figure_name_window_size="out/pos_vs_neg/BG4s_K562/Levine_pos_ws_vs_enrichment.pdf",
-             figure_name_coeff_dist="out/pos_vs_neg/BG4s_K562/redundant.pdf",
-             figure_name_CGI_dist="out/pos_vs_neg/BG4s_K562/Levine_pos_CGI_context_dist.pdf")
-plot_results(overlap_results = results_neg, query_name="negative CpGs", search_set_name="BG4s",
+             figure_name_window_size="out/pos_vs_neg/gw_G4s/Levine_pos_ws_vs_enrichment.pdf",
+             figure_name_coeff_dist="out/pos_vs_neg/gw_G4s/redundant.pdf",
+             figure_name_CGI_dist="out/pos_vs_neg/gw_G4s/Levine_pos_CGI_context_dist.pdf")
+plot_results(overlap_results = results_neg, query_name="negative CpGs", search_set_name="G4s",
              window_size=window_size_CpG_dist_plot,
-             figure_name_window_size="out/pos_vs_neg/BG4s_K562/Levine_neg_ws_vs_enrichment.pdf",
-             figure_name_coeff_dist="out/pos_vs_neg/BG4s_K562/redundant.pdf",
-             figure_name_CGI_dist="out/pos_vs_neg/BG4s_K562/Levine_neg_CGI_context_dist.pdf")
+             figure_name_window_size="out/pos_vs_neg/gw_G4s/Levine_neg_ws_vs_enrichment.pdf",
+             figure_name_coeff_dist="out/pos_vs_neg/gw_G4s/redundant.pdf",
+             figure_name_CGI_dist="out/pos_vs_neg/gw_G4s/Levine_neg_CGI_context_dist.pdf")
 
+################################################################################
+# Analyse CGI contexts separately (human DNAm clocks)
+# load config.json file 
+params <- fromJSON(file="config.json")
+CpG_file <- params[["CpG_file"]]
+G4_file_plus <- params[["G4_file_plus"]]
+G4_file_minus <- params[["G4_file_minus"]]               
+chain_file <- params[["chain_file"]]
+genome_file <- params[["genome_file"]]
+CGI_map_file <- params[["CGI_map_file"]]
+window_size_CpG_dist_plot <- params[["window_size_CpG_dist_plot"]]
+window_sizes <- params[["window_sizes"]]
+all_CpGs_file <- params[["all_CpGs_file"]]
+all_CpGs_props_file <- params[["all_CpGs_props_file"]]
+
+G4_locs <- load_G4_data(G4_file_plus, narrow_peak = F)
+CpG_locs <- load_CpG_data(CpG_file = CpG_file)
+CpG_locs <- lift_over(coordinates=CpG_locs, chain_file=chain_file)
+CpG_locs <- annotate_CpGs(CpG_coordinates=CpG_locs, CGI_map_file=CGI_map_file)
+CpGs_in <- CpG_locs %>% filter(CGI_context=="inside")
+CpGs_out <- CpG_locs %>% filter(CGI_context=="outside")
+results_all_CpGs <- read.csv(file=all_CpGs_props_file, header=T, sep=";")
+results_in <- analyse_window_size(query=CpGs_in, search_set=G4_locs, genome_file=genome_file, window_sizes=window_sizes, all_CpGs_props=results_all_CpGs)
+results_out <- analyse_window_size(query=CpGs_out, search_set=G4_locs, genome_file=genome_file, window_sizes=window_sizes, all_CpGs_props=results_all_CpGs)
+write.table(results_in$stats, file="out/CGI_in_vs_out/BG4s_K562/Levine_in_stats.csv", sep=";", quote=F, row.names = F)
+write.table(results_out$stats, file="out/CGI_in_vs_out/BG4s_K562/Levine_out_stats.csv", sep=";", quote=F, row.names = F)
+plot_results(overlap_results = results_in, query_name="CpGs in CGIs", search_set_name="G4s",
+             window_size=window_size_CpG_dist_plot,
+             figure_name_window_size="out/CGI_in_vs_out/BG4s_K562/Levine_in_ws_vs_enrichment.pdf",
+             figure_name_coeff_dist="out/CGI_in_vs_out/BG4s_K562/Levine_in_coeff_dist.pdf",
+             figure_name_CGI_dist="out/CGI_in_vs_out/BG4s_K562/redundant.pdf")
+plot_results(overlap_results = results_out, query_name="CpGs outside CGIs", search_set_name="G4s",
+             window_size=window_size_CpG_dist_plot,
+             figure_name_window_size="out/CGI_in_vs_out/BG4s_K562/Levine_out_ws_vs_enrichment.pdf",
+             figure_name_coeff_dist="out/CGI_in_vs_out/BG4s_K562/Levine_out_coeff_dist.pdf",
+             figure_name_CGI_dist="out/CGI_in_vs_out/BG4s_K562/redundant.pdf")
+
+################################################################################
 # Analyse BG4 chip seq data from papers (2016 Nat Gen, 2018 Nat S&M Bio)
 # 2016 Nat Gen
 G4_locs <- load_G4_data(G4_file_plus = G4_file_plus, narrow_peak = T)
@@ -112,6 +170,7 @@ results <- analyse_window_size(query=CpG_locs, search_set=G4_locs, genome_file=g
 plot_results(overlap_results = results, query_name="CpGs", search_set_name="BG4 ChIP-seq data (HEK)", figure_name_window_size = "out/BG4_HEK_output/rep1_Horvath.pdf")
 write.table(results, file="out/BG4_HEK_output/rep1_Horvath.csv", sep=";", quote=F, row.names = F)
 
+################################################################################
 
 # Analyse ATAC-seq data for HaCaT and HEK cell lines
 ATAC_data <- load_ATAC_data(ATAC_file=ATAC_file)

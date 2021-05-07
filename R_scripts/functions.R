@@ -93,7 +93,7 @@ analyse_overlap <- function(query = NULL, search_set = NULL, genome_file=NULL, r
     num_pos <- "N/A"
     percentage_pos <- "N/A"
   }
-  if("coefficient" %in% names(overlap_coor)){
+  if("CGI_context" %in% names(overlap_coor)){
     num_in_CGI <- dim(overlap_coor %>% filter(CGI_context=="inside"))[1]
     num_outside_CGI <- dim(overlap_coor %>% filter(CGI_context=="outside"))[1]
     percentage_in_CGI <- round(num_in_CGI/dim(overlap_coor)[1], digits=4)*100
@@ -193,11 +193,14 @@ plot_results <- function(overlap_results=NULL, query_name="CpGs", search_set_nam
   ggsave(figure_name_coeff_dist) 
   
   #plot CGI context distribution and print stats
-  ggplot(overlap_ws) +
-    geom_bar(aes(x=chromosome)) + 
-    facet_grid(CGI_context~.)
-  ggsave(figure_name_CGI_dist) 
-  
+  if(NA %in% stats$num_in_CGI){
+    print("No CGI information given. CpG distribution according to CGI context is not plotted. ")
+  }else{
+    ggplot(overlap_ws) +
+      geom_bar(aes(x=chromosome)) + 
+      facet_grid(CGI_context~.)
+    ggsave(figure_name_CGI_dist) 
+  }
   
 }
 
@@ -253,6 +256,7 @@ lift_over <- function(coordinates=NULL, chain_file=NULL) {
   if (chain_file=="-" | chain_file=="" | chain_file=="/" | chain_file=="\\" | is.null(chain_file) ) {
     #load the bed file containing genome coordinates 
     print("No lift over requested, proceeding without it.")
+    return(coordinates)
   } else {
     library(rtracklayer)
     #import chain file
@@ -312,22 +316,26 @@ load_ATAC_data <- function(ATAC_file=NULL, autosomes=T){
 
 annotate_CpGs <- function(CpG_coordinates=NULL, CGI_map_file=NULL){
   ### Function to add columns to CpG_locs dataframe, such as CGI context
-  
-  library(dplyr)
-  # Load the CGI map 
-  CGI_coordinates <- read.csv(CGI_map_file, sep="\t", col.names = c("chromosome", "start", "end", "name", "?", "??"))
-  CGI_coordinates <- CGI_coordinates[,c("chromosome", "start", "end")]
-  # Overlap CpGs with CGI map to get CpGs in CGIs
-  CpGs_in_CGIs <- overlap(query=CpG_locs, search_set=CGI_coordinates, reduce=T)
-  CpGs_in_CGIs <- CpG_locs %>% 
-    filter(start %in% CpGs_in_CGIs$start & end %in% CpGs_in_CGIs$end) %>%
-    arrange(chromosome, start) %>%
-    mutate(CGI_context="inside")
-  CpGs_outside_CGIs <- CpG_locs %>% 
-    filter(!(start %in% CpGs_in_CGIs$start & end %in% CpGs_in_CGIs$end)) %>% 
-    arrange(chromosome, start) %>% 
-    mutate(CGI_context="outside")
-  CpGs_annotated <- rbind(CpGs_in_CGIs, CpGs_outside_CGIs) %>% arrange(chromosome, start)
+  if(CGI_map_file=="" | CGI_map_file=="/" | CGI_map_file=="-" | is.null(CGI_map_file)){
+    print("No CGI map file supplied. CGI context won't be annotated.")
+    CpGs_annotated <- CpG_coordinates
+  } else{
+    library(dplyr)
+    # Load the CGI map 
+    CGI_coordinates <- read.csv(CGI_map_file, sep="\t", col.names = c("chromosome", "start", "end", "name", "?", "??"))
+    CGI_coordinates <- CGI_coordinates[,c("chromosome", "start", "end")]
+    # Overlap CpGs with CGI map to get CpGs in CGIs
+    CpGs_in_CGIs <- overlap(query=CpG_locs, search_set=CGI_coordinates, reduce=T)
+    CpGs_in_CGIs <- CpG_locs %>% 
+      filter(start %in% CpGs_in_CGIs$start & end %in% CpGs_in_CGIs$end) %>%
+      arrange(chromosome, start) %>%
+      mutate(CGI_context="inside")
+    CpGs_outside_CGIs <- CpG_locs %>% 
+      filter(!(start %in% CpGs_in_CGIs$start & end %in% CpGs_in_CGIs$end)) %>% 
+      arrange(chromosome, start) %>% 
+      mutate(CGI_context="outside")
+    CpGs_annotated <- rbind(CpGs_in_CGIs, CpGs_outside_CGIs) %>% arrange(chromosome, start)
+  }
   return(CpGs_annotated)
 }
 
