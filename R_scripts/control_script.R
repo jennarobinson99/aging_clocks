@@ -30,7 +30,7 @@ output_file <- params[["output_file"]]
 ### Steps 1 to 5 show an overview over the complete pipeline: 
 
 # 1) Load G4 data and catenate both strands
-G4_locs <- load_G4_data(G4_file_plus=G4_file_plus, G4_file_minus=G4_file_minus, narrow_peak = F)
+G4_locs <- load_G4_data(G4_file_plus=G4_file_plus, narrow_peak = F)
 
 # 2) Load CpG data and convert from .csv to .bed format
 CpG_locs <- load_CpG_data(CpG_file = CpG_file)
@@ -85,7 +85,15 @@ stats_all <- rbind(stats_CGI, stats_G4s)
 write.table(stats_all, file="out/CGIs_G4s_stats.csv", sep=";", row.names=F)
 
 ################################################################################
+# Enrichment of G4s in all CpGs genome-wide vs. G4s in AC CpGs 
+G4_locs <- load_G4_data(G4_file_plus = G4_file_plus, G4_file_minus = G4_file_minus)
+CpG_locs <- read.csv(all_CpGs_file, header=F, sep="\t", col.names = c("chromosome", "start", "end"))
+CpG_locs <- annotate_CpGs(CpG_coordinates=CpG_locs, CGI_map_file=CGI_map_file)
+results_all_CpGs <- read.csv(file=all_CpGs_props_file, header=T, sep=";")
+# search_set needs to be CpG_locs, cant shuffle such large files
+results <- analyse_window_size(query=G4_locs, search_set=CpG_locs, genome_file=genome_file, window_sizes=window_sizes, all_CpGs_props=results_all_CpGs)
 
+################################################################################
 # Analyse separately positive and negative correlation coefficients and compare their enrichments
 # load config.json file 
 params <- fromJSON(file="config.json")
@@ -176,11 +184,58 @@ write.table(results, file="out/BG4_HEK_output/rep1_Horvath.csv", sep=";", quote=
 ATAC_data <- load_ATAC_data(ATAC_file=ATAC_file)
 CpG_locs <- load_CpG_data(CpG_file)
 CpG_locs <- lift_over(coordinates=CpG_locs, chain_file=chain_file)
-CpG_locs <- annotate_CpGs(CpG_coordinates=CpG_locs, CGI_map_file = CGI_map_file)
-G4_locs <- load_G4_data(G4_file_plus=G4_file_plus, narrow_peak=F)
+CpG_locs <- annotate_CpGs(CpG_coordinates=CpG_locs, CGI_map_file = CGI_map_file, ATAC_map_file = ATAC_file)
+# split CpGs in open and closed chromatin groups 
+CpG_open <- CpG_locs %>% filter(chromatin=="open")
+CpG_closed <- CpG_locs %>% filter(chromatin=="closed")
+G4_locs <- load_G4_data(G4_file_plus=G4_file_plus, narrow_peak=T)
 all_CpGs_props <- read.csv(all_CpGs_props_file, sep=";")
+# Overlap clock CpGs with G4s
+results_open_CpGs <- analyse_window_size(query=CpG_open, search_set=G4_locs, genome_file=genome_file,all_CpGs_props = all_CpGs_props, window_sizes=window_sizes)
+plot_results(overlap_results=results_open_CpGs, query_name="CpGs", search_set_name="G4s",
+             window_size = window_size_CpG_dist_plot, 
+             figure_name_window_size = "out/chromatin_open_vs_closed/BG4_HEK/rep1_Levine_open_enrichment_vs_ws.pdf", 
+             figure_name_CGI_dist = "out/test_CGI.pdf", 
+             figure_name_coeff_dist = "out/test_coeff.pdf", 
+             figure_name_chromatin_dist = "out/test_chromatin.pdf")
+stats_open <- results_open_CpGs$stats
+write.table(stats_open, file="out/chromatin_open_vs_closed/BG4_HEK/rep1_Levine_open_stats.csv", sep=";", quote=F, row.names=F)
+
+results_closed_CpGs <- analyse_window_size(query=CpG_closed, search_set=G4_locs, genome_file=genome_file,all_CpGs_props = all_CpGs_props, window_sizes=window_sizes)
+plot_results(overlap_results=results_closed_CpGs, query_name="CpGs", search_set_name="G4s",
+             window_size = window_size_CpG_dist_plot, 
+             figure_name_window_size = "out/chromatin_open_vs_closed/BG4_HEK/rep1_Levine_closed_enrichment_vs_ws.pdf", 
+             figure_name_CGI_dist = "out/test_CGI.pdf", 
+             figure_name_coeff_dist = "out/test_coeff.pdf", 
+             figure_name_chromatin_dist = "out/test_chromatin.pdf")
+stats_closed <- results_closed_CpGs$stats
+write.table(stats_closed, file="out/chromatin_open_vs_closed/BG4_HEK/rep1_Levine_closed_stats.csv", sep=";", quote=F, row.names=F)
+
+
 # Overlap G4 and ATAC-seq data
 overlap_G4_ATAC <- analyse_overlap(query=G4_locs, search_set = ATAC_data, genome_file = genome_file)
 overlap_CpG_ATAC <- analyse_window_size(query = CpG_locs, search_set=ATAC_data, genome_file=genome_file, window_sizes=window_sizes, all_CpGs_props = all_CpGs_props)
 overlap_G4_ATAC_hacat <- overlap_G4_ATAC
 overlap_CpG_ATAC_hacat <- overlap_CpG_ATAC
+
+################################################################################
+# Analyse TET enzyme overlap with G4s in human and mouse (genome-wide G4s)
+# load TET data 
+TET_data <- read.csv("data/TET_data/TET1_C_mouse_peaks.bed", sep="\t", header=F)
+names(TET_data) <- c("chromosome", "start", "end", ".", "..", "strand")
+TET_data <- TET_data %>% select(chromosome, start, end) %>% filter(chromosome %in% c("chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9", "chr10", "chr11", "chr12", "chr13", "chr14", "chr15", "chr16", "chr17", "chr18", "chr19")) 
+TET_data <- lift_over(coordinates=TET_data, chain_file="data/chain_files/mm9ToMm10.over.chain")
+# load G4s 
+G4_locs <- load_G4_data(G4_file_plus="data/G4_maps/G4s_human_plus.bed", G4_file_minus="data/G4_maps/G4s_human_minus.bed", autosomes=T)
+# filter chrM out
+G4_locs <- G4_locs %>% filter(!(chromosome=="chrM"))
+# Overlap TET peaks and G4s 
+TETs_in_G4s <- analyse_overlap(query=TET_data, search_set=G4_locs, genome_file="data/genome_files/hg19_chromInfo_XY.txt")
+G4s_in_TETs <- analyse_overlap(query=G4_locs, search_set=TET_data, genome_file="data/genome_files/hg19_chromInfo_XY.txt")
+# construct output dataframe to write to file
+stats_TETs <- list("direction"="TETs_in_G4s", "num_overlap"=TETs_in_G4s$num_overlaps, "fold_enrichment"=TETs_in_G4s$fold_enrichment, "p_value_bp"=TETs_in_G4s$p_value_bp)
+stats_TETs <- data.frame(stats_TETs)
+stats_G4s <- list("direction"="G4s_in_TETs", "num_overlap"=G4s_in_TETs$num_overlaps, "fold_enrichment"=G4s_in_TETs$fold_enrichment, "p_value_bp"=G4s_in_TETs$p_value_bp)
+stats_G4s <- data.frame(stats_G4s)
+stats_all <- rbind(stats_TETs, stats_G4s)
+write.table(stats_all, file="out/TET_analysis/human_TET1_G4_stats.csv", sep=";", row.names = F)

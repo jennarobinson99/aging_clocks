@@ -83,7 +83,7 @@ analyse_overlap <- function(query = NULL, search_set = NULL, genome_file=NULL, r
     p_value_CpGs <- NA
   }
   
-  # save infos on how many positive / negative correlation; CGI context
+  # save infos on how many positive / negative correlation; CGI context; chromatin accessibility
   if("coefficient" %in% names(overlap_coor)){
     num_pos <- dim(overlap_coor %>% filter(coefficient>0))[1] 
     num_neg <- dim(overlap_coor %>% filter(coefficient<0))[1]
@@ -102,7 +102,16 @@ analyse_overlap <- function(query = NULL, search_set = NULL, genome_file=NULL, r
     num_in_CGI <- "N/A"
     percentage_in_CGI <- "N/A"
   }
-  return(list("overlap_coordinates" = overlap_coor, "num_overlaps" = num_overlaps, "fold_enrichment" = enrichment, "p_value_bp" = p_value_bases, "p_value_CpGs" = p_value_CpGs, "num_pos" = num_pos, "percentage_pos" = percentage_pos, "num_in_CGI" = num_in_CGI, "percentage_in_CGI" = percentage_in_CGI))
+  if("chromatin" %in% names(overlap_coor)){
+    num_open <- dim(overlap_coor %>% filter(chromatin=="open"))[1]
+    num_closed <- dim(overlap_coor %>% filter(chromatin=="closed"))[1]
+    percentage_open <- round(num_open/dim(overlap_coor)[1], digits=4) * 100
+    percentage_closed <- round(num_closed/dim(overlap_coor)[1], digits=4) * 100
+  } else{
+    num_open <- "N/A"
+    percentage_open <- "N/A"
+  }
+  return(list("overlap_coordinates" = overlap_coor, "num_overlaps" = num_overlaps, "fold_enrichment" = enrichment, "p_value_bp" = p_value_bases, "p_value_CpGs" = p_value_CpGs, "num_pos" = num_pos, "percentage_pos" = percentage_pos, "num_in_CGI" = num_in_CGI, "percentage_in_CGI" = percentage_in_CGI, "num_open" = num_open, "percentage_open" = percentage_open))
 }
 
 
@@ -124,6 +133,8 @@ analyse_window_size <- function(query=NULL, search_set=NULL, genome_file=NULL, w
   num_outside_CGI <- numeric()
   percentage_outside_CGI <- numeric()
   percentage_in_CGI <- numeric()
+  num_open <- numeric()
+  percentage_open <- numeric()
   
   for(window_size in window_sizes){
     sprintf("Analysing window size: %i", window_size)
@@ -147,11 +158,13 @@ analyse_window_size <- function(query=NULL, search_set=NULL, genome_file=NULL, w
     percentage_pos[i] <- temp_results[["percentage_pos"]]
     num_in_CGI[i] <- temp_results[["num_in_CGI"]]
     percentage_in_CGI[i] <- temp_results[["percentage_in_CGI"]]
+    num_open[i] <- temp_results[["num_open"]]
+    percentage_open[i] <- temp_results[["percentage_open"]]
     i <- i + 1
   }
   
-  stats <- cbind.data.frame(window_sizes, as.numeric(num_overlaps), as.numeric(fold_enrichment), as.numeric(p_value_bp), as.numeric(p_value_CpGs), as.numeric(num_pos), as.numeric(percentage_pos), as.numeric(num_in_CGI), as.numeric(percentage_in_CGI))
-  names(stats) <- c("window_size", "num_overlaps", "fold_enrichment", "p_value_bp", "p_value_CpGs", "num_pos", "percentage_pos", "num_in_CGI", "percentage_in_CGI")
+  stats <- cbind.data.frame(window_sizes, as.numeric(num_overlaps), as.numeric(fold_enrichment), as.numeric(p_value_bp), as.numeric(p_value_CpGs), as.numeric(num_pos), as.numeric(percentage_pos), as.numeric(num_in_CGI), as.numeric(percentage_in_CGI), as.numeric(num_open), as.numeric(percentage_open))
+  names(stats) <- c("window_size", "num_overlaps", "fold_enrichment", "p_value_bp", "p_value_CpGs", "num_pos", "percentage_pos", "num_in_CGI", "percentage_in_CGI", "num_open", "percentage_open")
   return(list("overlap_coordinates" = overlap_coor, "stats" = stats))
 }
 
@@ -159,8 +172,9 @@ analyse_window_size <- function(query=NULL, search_set=NULL, genome_file=NULL, w
 plot_results <- function(overlap_results=NULL, query_name="CpGs", search_set_name="G4s", 
                          window_size=NULL, 
                          figure_name_window_size="out/window_size_vs_enrichment.pdf",
-                         figure_name_CGI_dist="out/CGI_context_dist.pdf",
-                         figure_name_coeff_dist="out/CGI_coeff_dist.pdf") {
+                         figure_name_CGI_dist="out/CpG_CGI_context_dist.pdf",
+                         figure_name_coeff_dist="out/CpG_coeff_dist.pdf", 
+                         figure_name_chromatin_dist="out/CpG_chromatin_dist.pdf") {
   ### Function visualises the results of overlap by plotting enrichment vs. window size,
   ### CpG distribution according to CGI context and coefficient
   
@@ -192,7 +206,7 @@ plot_results <- function(overlap_results=NULL, query_name="CpGs", search_set_nam
     facet_grid(sign~.)
   ggsave(figure_name_coeff_dist) 
   
-  #plot CGI context distribution and print stats
+  #plot CGI context distribution
   if(NA %in% stats$num_in_CGI){
     print("No CGI information given. CpG distribution according to CGI context is not plotted. ")
   }else{
@@ -202,6 +216,18 @@ plot_results <- function(overlap_results=NULL, query_name="CpGs", search_set_nam
     ggsave(figure_name_CGI_dist) 
   }
   
+  #plot chromatin accessibility distribution
+  if(NA %in% stats$num_open){
+    print("No chromatin accessibility information given. CpG distribution according to this factor is not plotted. ")
+  } else{
+    ggplot(overlap_ws) + 
+      geom_bar(aes(x=chromosome)) + 
+      facet_grid(chromatin~.)
+    ggsave(figure_name_chromatin_dist)
+  }
+  
+  # print stats
+  print(stats)
 }
 
 
@@ -267,9 +293,15 @@ lift_over <- function(coordinates=NULL, chain_file=NULL) {
     lifted_ranges <- liftOver(ranges, chain)
     # get the object in the right format and write to file
     temp_df <- data.frame(iranges=lifted_ranges)
-    lifted_coor <- data.frame(cbind.data.frame(coordinates$chromosome, temp_df$iranges.start, 
-                                            temp_df$iranges.end, coordinates$coefficient))
-    names(lifted_coor) <- c("chromosome", "start", "end", "coefficient")
+    lifted_coor <- data.frame(cbind.data.frame(temp_df$iranges.seqnames,
+                                               temp_df$iranges.start, temp_df$iranges.end))
+    if("coefficient" %in% names(coordinates)){
+      lifted_coor <- data.frame(cbind.data.frame(lifted_coor, coordinates$coefficient))
+      names(lifted_coor) <- c("chromosome", "start", "end", "coefficient")
+    } else {
+      names(lifted_coor) <- c("chromosome", "start", "end")
+    }
+    
     return(lifted_coor)
   }
 }
@@ -314,9 +346,10 @@ load_ATAC_data <- function(ATAC_file=NULL, autosomes=T){
 }
 
 
-annotate_CpGs <- function(CpG_coordinates=NULL, CGI_map_file=NULL){
-  ### Function to add columns to CpG_locs dataframe, such as CGI context
-  if(CGI_map_file=="" | CGI_map_file=="/" | CGI_map_file=="-" | is.null(CGI_map_file)){
+annotate_CpGs <- function(CpG_coordinates=NULL, CGI_map_file=NULL, ATAC_map_file=NULL){
+  ### Function to add columns to CpG_locs dataframe, such as CGI context, ATAC context
+  # annotate CGI context
+  if(is.null(CGI_map_file)){
     print("No CGI map file supplied. CGI context won't be annotated.")
     CpGs_annotated <- CpG_coordinates
   } else{
@@ -325,7 +358,7 @@ annotate_CpGs <- function(CpG_coordinates=NULL, CGI_map_file=NULL){
     CGI_coordinates <- read.csv(CGI_map_file, sep="\t", col.names = c("chromosome", "start", "end", "name", "?", "??"))
     CGI_coordinates <- CGI_coordinates[,c("chromosome", "start", "end")]
     # Overlap CpGs with CGI map to get CpGs in CGIs
-    CpGs_in_CGIs <- overlap(query=CpG_locs, search_set=CGI_coordinates, reduce=T)
+    CpGs_in_CGIs <- overlap(query=CpG_coordinates, search_set=CGI_coordinates, reduce=F)
     CpGs_in_CGIs <- CpG_locs %>% 
       filter(start %in% CpGs_in_CGIs$start & end %in% CpGs_in_CGIs$end) %>%
       arrange(chromosome, start) %>%
@@ -335,6 +368,26 @@ annotate_CpGs <- function(CpG_coordinates=NULL, CGI_map_file=NULL){
       arrange(chromosome, start) %>% 
       mutate(CGI_context="outside")
     CpGs_annotated <- rbind(CpGs_in_CGIs, CpGs_outside_CGIs) %>% arrange(chromosome, start)
+  }
+  #annotate ATAc context
+  if(is.null(ATAC_map_file)){
+    print("No ATAC map file supplied. ATAC context won't be annotated.")
+    CpGs_annotated <- CpGs_annotated
+  } else{
+    library(dplyr)
+    ATAC_coordinates <- read.csv(ATAC_map_file, sep="\t", header=F, col.names=c("chromosome", "start", "end", "name", "strand", ".", "..", "...", "....", "....."))
+    ATAC_coordinates <- ATAC_coordinates[,c("chromosome", "start","end")]
+    CpGs_accessible <- overlap(query=CpGs_annotated, search_set=ATAC_coordinates, reduce=F)
+    CpGs_accessible <- CpGs_annotated %>% 
+      filter(start %in% CpGs_accessible$start & end %in% CpGs_accessible$end) %>% 
+      arrange(chromosome, start) %>% 
+      mutate(chromatin="open")
+    CpGs_inaccessible <- CpGs_annotated %>% 
+      filter(!(start %in% CpGs_accessible$start & end %in% CpGs_accessible$end)) %>%
+      arrange(chromosome, start) %>%
+      mutate(chromatin="closed")
+    CpGs_annotated <- rbind(CpGs_accessible, CpGs_inaccessible) %>% arrange(chromosome, start)
+    
   }
   return(CpGs_annotated)
 }
