@@ -1,7 +1,7 @@
 # This file contains all functions needed for overlap analysis. 
 
 
-overlap <- function(query=NULL, search_set=NULL, reduce=T){
+overlap <- function(query=NULL, search_set=NULL, reduce=F){
   ### A and B should be Ranges objects which can be reduced and overlapped (subset overlap, bedtools -wa mode)
   library(GenomicRanges)
   ranges_A <- makeGRangesFromDataFrame(query, keep.extra.columns = T)
@@ -12,8 +12,6 @@ overlap <- function(query=NULL, search_set=NULL, reduce=T){
   if (reduce){
     overlap_ranges <- GenomicRanges::reduce(overlap_ranges) # merges potential duplicates
   }
- 
-  # TODO: need to keep extra columns (e.g. coefficient / score) -> for duplicates, take average
   
   # convert to data frame, return resulting dataframe
   overlap_coor <- GRanges_to_df(ranges=overlap_ranges)
@@ -22,7 +20,7 @@ overlap <- function(query=NULL, search_set=NULL, reduce=T){
 }
 
 
-analyse_overlap <- function(query = NULL, search_set = NULL, genome_file=NULL, random_trials=5, all_CpGs_props=NULL) {
+analyse_overlap <- function(query = NULL, search_set = NULL, genome_file=NULL, random_trials=5, all_CpGs_props=NULL, shuffle="q") {
   ### Function overlaps two files and analyses the overlap, gives out bp and CpG-based p-values, enrichment
   
   library(regioneR)
@@ -47,9 +45,19 @@ analyse_overlap <- function(query = NULL, search_set = NULL, genome_file=NULL, r
   rand_overlaps <- vector()
   for(i in 1:random_trials){
     set.seed(i)
-    shuffled_coor <- GRanges_to_df(randomizeRegions(query, genome=genome))
-    shuffled_overlap <- overlap(query=shuffled_coor, search_set = search_set)
-    rand_overlaps[i] <- dim(shuffled_overlap)[1]
+    print("Shuffling trial: ")
+    print(i)
+    if(shuffle=="q"){
+      shuffled_coor <- GRanges_to_df(randomizeRegions(query, genome=genome))
+      shuffled_overlap <- overlap(query=shuffled_coor, search_set = search_set)
+      rand_overlaps[i] <- dim(shuffled_overlap)[1]
+    } else if(shuffle=="s"){
+      shuffled_coor <- GRanges_to_df(randomizeRegions(search_set, genome=genome))
+      shuffled_overlap <- overlap(query=query, search_set = shuffled_coor)
+      rand_overlaps[i] <- dim(shuffled_overlap)[1]
+    } else{
+      print("Invalid argument for shuffle.")
+    }
   }
   average_rand_overlaps <- round(mean(rand_overlaps))
   
@@ -115,7 +123,7 @@ analyse_overlap <- function(query = NULL, search_set = NULL, genome_file=NULL, r
 }
 
 
-analyse_window_size <- function(query=NULL, search_set=NULL, genome_file=NULL, window_sizes=NULL, all_CpGs_props=NULL){
+analyse_window_size <- function(query=NULL, search_set=NULL, genome_file=NULL, window_sizes=NULL, all_CpGs_props=NULL, shuffle="q"){
   ### Function loops through all given window sizes and calculates statistical metrics about distribution and enrichment for all. Outputs dataframe containing all results and produces graphs. 
   
   library(dplyr)
@@ -137,7 +145,8 @@ analyse_window_size <- function(query=NULL, search_set=NULL, genome_file=NULL, w
   percentage_open <- numeric()
   
   for(window_size in window_sizes){
-    sprintf("Analysing window size: %i", window_size)
+    print("Analysing window size: ")
+    print(window_size)
     #apply window size
     query_ext <- query %>% mutate(start=start-round(window_size/2), end=end+round(window_size/2)-1)
     # select correct all_CpGs_props entry
@@ -145,7 +154,8 @@ analyse_window_size <- function(query=NULL, search_set=NULL, genome_file=NULL, w
     curr_all_CpGs_props <- all_CpGs_props %>% filter(window_size==ws)
     #get results for current window size
     temp_results <- analyse_overlap(query=query_ext, search_set = search_set, 
-                                    genome_file=genome_file, all_CpGs_props=curr_all_CpGs_props)
+                                    genome_file=genome_file, all_CpGs_props=curr_all_CpGs_props, 
+                                    shuffle=shuffle)
     
     # save coordinates of overlapping G4s and CpGs and augment with coefficient from input
     overlap_coor[i] <- temp_results["overlap_coordinates"]
