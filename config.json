@@ -1,19 +1,21 @@
 {
    "CpG_file":"data/CpG_lists/Horvath_clock_CpGs.csv",
-   "G4_file_plus":"data/G4_maps/G4s_human_plus.bed",
-   "G4_file_minus":"data/G4_maps/G4s_human_minus.bed",
-   "ATAC_file":"",
+   "G4_file_plus":"data/G4_maps/BG4_K562.bed",
+   "G4_file_minus":"",
+   "ATAC_file":"data/ATAC_maps/ATAC_K562.bed",
    "chain_file":"data/chain_files/hg18ToHg19.over.chain",
    "genome_file":"data/genome_files/hg19_chromInfo.txt",
    "all_CpGs_file":"data/CpG_lists/all_CpGs_hg19.bed",
-   "all_CpGs_props_file":"out/all_CpGs_props/all_CpGs_props_all_G4s.csv", 
-   "window_sizes": [0,10,50,100,200,500, 1000, 5000], 
+   "all_CpGs_props_file":"out/all_CpGs_props/all_CpGs_props_BG4_K562.csv", 
+   "window_sizes": [0, 30, 50, 100, 300, 500, 1000, 5000, 10000, 100000, 1000000],
    "CGI_map_file":"data/CGI_maps/hg19_CGI_map.bed",
+   "mask_file":"data/CGI_maps/hg19_CGI_opposite_mask.bed",
    "window_size_CpG_dist_plot":100,
-   "figure_name_window_size":"",
+   "figure_name_enrichment":"",
+   "figure_name_p_value":"",
    "figure_name_coefficient_dist":"",
    "figure_name_CGI_dist":"",
    "figure_name_chromatin_dist":"",
-   "output_file":"out/global_CpGs_in_G4s/genome_wide_CpGs_in_all_G4s_stats.csv"
+   "output_file":""
    
 }
